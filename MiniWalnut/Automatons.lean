@@ -32,6 +32,7 @@ structure DFA_Complete (T : Type) (Q : Type) where
   alphabet : List T
   dead_state : Option Q
   vars : List Char
+  alphabet_vars : List T
   automata : DFA T Q
 
 /- msd_2 Automatons -/
