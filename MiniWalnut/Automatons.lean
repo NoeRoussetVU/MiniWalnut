@@ -26,7 +26,6 @@ inductive binary_logical_ops where
   | impl
   | equiv
 
--- TODO: add variables and full dfas for the ones below epic meme balls meme haha tuah
 structure DFA_Complete (T : Type) (Q : Type) where
   states : List Q
   alphabet : List T
@@ -37,46 +36,48 @@ structure DFA_Complete (T : Type) (Q : Type) where
 
 /- msd_2 Automatons -/
 
-def valid_representations : DFA B2 Nat := {
+def valid_representations : DFA (List B2) Nat := {
   step := fun x y => match x,y with
-    | _, _ => 0
-  start := 0
-  accept := {x | x=0}
-}
-
-def addition : DFA (B2 × B2 × B2) Nat := {
-  step := fun x y => match x,y with
-    | 0, (B2.zero, B2.zero, B2.zero) => 0
-    | 0, (B2.one, B2.one, B2.zero) => 0
-    | 0, (B2.one, B2.zero, B2.one) => 0
-    | 0, (B2.one, B2.zero, B2.zero) => 1
-    | 1, (B2.one, B2.one, B2.one) => 1
-    | 1, (B2.zero, B2.one, B2.zero) => 1
-    | 1, (B2.zero, B2.zero, B2.one) => 1
-    | 1, (B2.zero, B2.one, B2.one) => 0
-    | _, _ => 2
-  start := 0
-  accept := {x | x=0}
-}
-
-def equals : DFA (B2 × B2) Nat := {
-  step := fun x y => match x,y with
-    | 0, (B2.zero, B2.zero) => 0
-    | 0, (B2.one, B2.one) => 0
+    | 0, [B2.zero] => 0
+    | 0, [B2.one] => 0
     | _, _ => 1
   start := 0
   accept := {x | x=0}
 }
 
-def less_than : DFA (B2 × B2) Nat := {
+def addition : DFA (List B2) Nat := {
   step := fun x y => match x,y with
-    | 0, (B2.zero, B2.zero) => 0
-    | 0, (B2.one, B2.one) => 0
-    | 0, (B2.zero, B2.one) => 1
-    | 1, (B2.one, B2.one) => 1
-    | 1, (B2.zero, B2.one) => 1
-    | 1, (B2.one, B2.zero) => 1
-    | 1, (B2.zero, B2.zero) => 1
+    | 0, [B2.zero, B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one, B2.zero] => 0
+    | 0, [B2.one, B2.zero, B2.one] => 0
+    | 0, [B2.one, B2.zero, B2.zero] => 1
+    | 1, [B2.one, B2.one, B2.one] => 1
+    | 1, [B2.zero, B2.one, B2.zero] => 1
+    | 1, [B2.zero, B2.zero, B2.one] => 1
+    | 1, [B2.zero, B2.one, B2.one] => 0
+    | _, _ => 2
+  start := 0
+  accept := {x | x=0}
+}
+
+def equals : DFA (List B2) Nat := {
+  step := fun x y => match x,y with
+    | 0, [B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one] => 0
+    | _, _ => 1
+  start := 0
+  accept := {x | x=0}
+}
+
+def less_than : DFA (List B2) Nat := {
+  step := fun x y => match x,y with
+    | 0, [B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one] => 0
+    | 0, [B2.zero, B2.one] => 1
+    | 1, [B2.one, B2.one] => 1
+    | 1, [B2.zero, B2.one] => 1
+    | 1, [B2.one, B2.zero] => 1
+    | 1, [B2.zero, B2.zero] => 1
     | _, _ => 2
   start := 0
   accept := {x | x=1}
@@ -94,3 +95,43 @@ def thue_morse : DFA B2 Nat := {
   start := 0
   accept := {}
 }
+
+/- Create full DFAs -/
+
+-- Create a DFA that accepts exactly one specific word
+def createEqualsDFA {α : Type} [DecidableEq α] (word : List α) (zero : α): DFA α Nat where
+  step := fun state symbol =>
+    -- If we're at position i and see the expected symbol, advance to i+1
+    -- Otherwise, go to a "dead" state (word.length + 1)
+    if state < word.length && word[state]? = some symbol then
+      state + 1
+    else if state = 0 && symbol = zero then
+      state
+    else
+      word.length + 1  -- Dead state
+  start := 0
+  accept := {word.length}  -- Only the final state after reading the complete word
+
+def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Char) : DFA_Complete (List B2) Nat where
+  automata := createEqualsDFA word zero
+  states := (List.range (word.length + 2))
+  alphabet := [[B2.zero], [B2.one]]
+  dead_state := some (word.length + 1)
+  vars := vars
+  alphabet_vars := [[B2.zero], [B2.one]]
+
+def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
+  automata := addition
+  states := [0,1]
+  alphabet := [[B2.zero], [B2.one]]
+  dead_state := none
+  vars := vars
+  alphabet_vars := [[B2.zero], [B2.one]]
+
+def createFullLTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
+  automata := less_than
+  states := [0,1]
+  alphabet := [[B2.zero], [B2.one]]
+  dead_state := none
+  vars := vars
+  alphabet_vars := [[B2.zero], [B2.one]]
