@@ -57,6 +57,26 @@ match alpha_1 with
 #eval (get_new_alphabet [[0,0,0],[0,0,1],[0,1,0],[1,0,1],[1,1,1]] (([[0,0,0],[0,0,1],[0,1,0],[1,0,1],[1,1,1]]).map (fun x => remove_indices x (List.range x.length) [0,1]))).dedup
 
 
+/-
+
+Cross-product on created DFAs
+
+  should think about how variables work a bit more
+
+  M := a < b
+  (Input1 × Input2) [a,b]
+  L := a = b
+  (Input1 × Input2) [a,b]
+
+  M | L
+  (Input1 × Input2) [a,b]
+
+  [a,b] ++ [a,b] dedup = [a,b]
+
+  what is going on? what are you doing?
+
+-/
+
 -- Cross product of two DFAs
 def DFA_Complete.crossProduct {State1 State2 Input : Type} [Inhabited Input] [DecidableEq Input] (M1 : DFA_Complete (List Input) State1) (conj : binary_logical_ops) (M2 : DFA_Complete (List Input) State2)
  : DFA_Complete (List Input) (State1 × State2) where

@@ -115,7 +115,7 @@ def createEqualsDFA {α : Type} [DecidableEq α] (word : List α) (zero : α): D
 def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := createEqualsDFA word zero
   states := (List.range (word.length + 2))
-  alphabet := [[B2.zero], [B2.one]]
+  alphabet := [[B2.zero, B2.zero], [B2.one, B2.one]]
   dead_state := some (word.length + 1)
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
@@ -123,7 +123,14 @@ def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Ch
 def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := addition
   states := [0,1]
-  alphabet := [[B2.zero], [B2.one]]
+  alphabet := [[B2.zero, B2.zero, B2.zero],
+  [B2.one, B2.one, B2.zero],
+  [B2.one, B2.zero, B2.one],
+  [B2.one, B2.zero, B2.zero],
+  [B2.one, B2.one, B2.one],
+  [B2.zero, B2.one, B2.zero],
+  [B2.zero, B2.zero, B2.one],
+  [B2.zero, B2.one, B2.one]]
   dead_state := none
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
@@ -131,7 +138,8 @@ def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
 def createFullLTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := less_than
   states := [0,1]
-  alphabet := [[B2.zero], [B2.one]]
+  alphabet := [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
+  [B2.one, B2.one], [B2.zero, B2.one], [B2.one, B2.zero], [B2.zero, B2.zero]]
   dead_state := none
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
