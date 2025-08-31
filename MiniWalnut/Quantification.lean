@@ -95,7 +95,7 @@ def test_func : Nat → List B2 → List Nat
 def test_input : List B2 := [B2.zero, B2.one]
 def test_alphabet : List (List B2) := [[B2.zero, B2.zero],[B2.zero, B2.one],[B2.one, B2.zero],[B2.one, B2.one]]
 
-partial def determinize {State1 Input1 : Type} [DecidableEq Input1] [DecidableEq State1] [BEq State1]
+ def determinize {State1 Input1 : Type} [DecidableEq Input1] [DecidableEq State1] [BEq State1]
   (transition_function : State1 → Input1 → (List State1)) (alphabet : List Input1)
   (current_state : List State1) (num_possible_states : Nat) (previous_states : List (List State1)) : (List ((List State1 × Input1) × List State1) ) :=
   -- function that takes a list of states, a step function and an input
@@ -104,17 +104,17 @@ partial def determinize {State1 Input1 : Type} [DecidableEq Input1] [DecidableEq
   (input : Input1) : (List (List State1)) :=
     states.map (fun x => step x input)
 
-  match num_possible_states with
-  | 0 => []
-  | p =>  let current_transitions := alphabet.map (fun x => ((current_state,x),(get_reachable_states current_state transition_function x).flatten.dedup))
-          let current_reachable_states := (current_transitions.map (fun ((x,y),z) => z)).dedup
-          let next_reachable_states := current_reachable_states.map (fun (x) =>
-            if (previous_states.filter (fun w => w.isPerm x)).isEmpty
-            then
-            (determinize transition_function alphabet x (p-1) (previous_states++[x]))
-            else []
-          )
-          current_transitions ++ next_reachable_states.flatten
+  if num_possible_states > 0 then
+    let current_transitions := alphabet.map (fun x => ((current_state,x),(get_reachable_states current_state transition_function x).flatten.dedup))
+    let current_reachable_states := (current_transitions.map (fun ((x,y),z) => z)).dedup
+    let next_reachable_states := current_reachable_states.map (fun (x) =>
+      if (previous_states.filter (fun w => w.isPerm x)).isEmpty
+      then
+      (determinize transition_function alphabet x (num_possible_states-1) (previous_states++[x]))
+      else []
+    )
+    current_transitions ++ next_reachable_states.flatten
+  else []
 
 #eval ((determinize test_func test_alphabet [1,2] (number_of_possible_states [1,2,3].length 0)) [[1,2]]).length
 
