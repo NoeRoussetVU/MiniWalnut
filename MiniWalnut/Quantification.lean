@@ -100,9 +100,8 @@ def test_alphabet : List (List B2) := [[B2.zero, B2.zero],[B2.zero, B2.one],[B2.
   (current_state : List State1) (num_possible_states : Nat) (previous_states : List (List State1)) : (List ((List State1 × Input1) × List State1) ) :=
   -- function that takes a list of states, a step function and an input
   -- and goes through the list
-  let rec get_reachable_states (states : List State1) (step : State1 → Input1 → (List State1))
-  (input : Input1) : (List (List State1)) :=
-    states.map (fun x => step x input)
+  let get_reachable_states (states : List State1) (step : State1 → Input1 → (List State1))
+  (input : Input1) : (List (List State1)) := states.map (fun x => step x input)
 
   if num_possible_states > 0 then
     let current_transitions := alphabet.map (fun x => ((current_state,x),(get_reachable_states current_state transition_function x).flatten.dedup))
@@ -116,7 +115,7 @@ def test_alphabet : List (List B2) := [[B2.zero, B2.zero],[B2.zero, B2.one],[B2.
     current_transitions ++ next_reachable_states.flatten
   else []
 
-#eval ((determinize test_func test_alphabet [1,2] (number_of_possible_states [1,2,3].length 0)) [[1,2]]).length
+#eval ((determinize test_func test_alphabet [1,2] (2^([1,2,3].length ))) [[1,2]]).length
 
 /-
 [(([1], 'a'), [2, 3]),
@@ -133,9 +132,12 @@ def test_alphabet : List (List B2) := [[B2.zero, B2.zero],[B2.zero, B2.one],[B2.
   (([1, 2, 3], 'c'), [1, 2, 3])]
 -/
 
-def quant {State1 State2 Input : Type} [DecidableEq Input] [DecidableEq State1] [DecidableEq State2]
-  (M1 : DFA_Complete (List Input) (State1 × State2)) (zero : List Input) (var : Char):
-  DFA_Complete (List Input) (List (State1 × State2)) :=
+def filterContaining {State : Type} [DecidableEq State] (l1 : List (List State)) (l2 : List State) : List (List State) :=
+  l1.filter (fun sublist => l2.any (fun x => x ∈ sublist))
+
+def quant {State Input : Type} [DecidableEq Input] [DecidableEq State]
+  (M1 : DFA_Complete (List Input) (State)) (zero : List Input) (var : Char):
+  DFA_Complete (List Input) (List (State)) :=
   -- Remove second item from alphabet (check var and panic and stuff idkdk)
   let idx := M1.vars.findIdx (· = var)
   let new_alphabet := (M1.alphabet.map (fun x => x.eraseIdx idx)).dedup
@@ -145,13 +147,13 @@ def quant {State1 State2 Input : Type} [DecidableEq Input] [DecidableEq State1] 
   -- let step := fun st input => ((M1.alphabet.filter (fun (x,_) => x == input)).map (fun (_,y) => M1.automata.step st (input, y)))
   let step := fun st input => (M1.alphabet_vars.flatten.map (fun x => input.insertIdx idx x)).map (fun y => M1.automata.step st y)
   -- List of all possible states when determinizing the DFA
-  let num_possible_states := number_of_possible_states M1.states.length 0
+  let num_possible_states := 2^(M1.states.length)
   -- Finds all states reachable from the starting state with 0*
-  let start_states := (reachableWithOneOrMoreZeros {M1.automata.start} step zero M1.states.length).dedup
+  let start_states := (reachableWithOneOrMoreZeros [M1.automata.start] step zero (M1.states.length*3)).dedup
   -- TODO: call reason, get all states, new transition function, accept: any list with accept states in it
-  let transitions := (determinize step new_alphabet start_states num_possible_states [start_states]).dedup
+  let transitions := (determinize step new_alphabet start_states num_possible_states []).dedup
   let new_states := ((transitions.map (fun ((x,_),_) => x)) ++ (transitions.map (fun ((_,_),z) => z)))
-  let dfa_list : DFA (List Input) (List (State1 × State2)) :={
+  let dfa_list : DFA (List Input) (List (State)) :={
     step := fun st input => let transt := (transitions.filter (fun ((x,y),_) => st = x ∧ input = y))
     match transt.head? with
     | some ((x,y),z) => z
@@ -159,4 +161,4 @@ def quant {State1 State2 Input : Type} [DecidableEq Input] [DecidableEq State1] 
     start := start_states
     accept := {x | ∃ i, i ∈ M1.automata.accept ∧ x.contains i}
   }
-  {states := new_states.dedup, alphabet := new_alphabet, alphabet_vars := M1.alphabet_vars, dead_state := none, vars := M1.vars.eraseIdx idx, automata := dfa_list}
+  {states := new_states.dedup, states_accept := new_states.dedup.filter (fun x => M1.states_accept.any (fun y => y ∈ x))  , alphabet := new_alphabet, alphabet_vars := M1.alphabet_vars, dead_state := none, vars := M1.vars.eraseIdx idx, automata := dfa_list}

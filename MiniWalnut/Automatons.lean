@@ -28,6 +28,7 @@ inductive binary_logical_ops where
 
 structure DFA_Complete (T : Type) (Q : Type) where
   states : List Q
+  states_accept : List Q
   alphabet : List T
   dead_state : Option Q
   vars : List Char
@@ -85,12 +86,12 @@ def less_than : DFA (List B2) Nat := {
 
 /- Thue-Morse DFAO -/
 
-def thue_morse : DFA B2 Nat := {
+def thue_morse : DFA (List B2) Nat := {
   step := fun x y => match x,y with
-    | 0, B2.zero => 0
-    | 0, B2.one => 1
-    | 1, B2.zero => 1
-    | 1, B2.one => 0
+    | 0, [B2.zero] => 0
+    | 0, [B2.one] => 1
+    | 1, [B2.zero] => 1
+    | 1, [B2.one] => 0
     | _, _ => 2
   start := 0
   accept := {}
@@ -115,7 +116,8 @@ def createEqualsDFA {α : Type} [DecidableEq α] (word : List α) (zero : α): D
 def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := createEqualsDFA word zero
   states := (List.range (word.length + 2))
-  alphabet := [[B2.zero, B2.zero], [B2.one, B2.one]]
+  states_accept := [word.length]
+  alphabet := [[B2.zero], [B2.one]]
   dead_state := some (word.length + 1)
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
@@ -123,6 +125,7 @@ def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Ch
 def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := addition
   states := [0,1]
+  states_accept := [0]
   alphabet := [[B2.zero, B2.zero, B2.zero],
   [B2.one, B2.one, B2.zero],
   [B2.one, B2.zero, B2.one],
@@ -131,15 +134,30 @@ def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   [B2.zero, B2.one, B2.zero],
   [B2.zero, B2.zero, B2.one],
   [B2.zero, B2.one, B2.one]]
-  dead_state := none
+  dead_state := some 2
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
 
 def createFullLTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := less_than
   states := [0,1]
+  states_accept := [1]
   alphabet := [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
   [B2.one, B2.one], [B2.zero, B2.one], [B2.one, B2.zero], [B2.zero, B2.zero]]
   dead_state := none
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
+
+def createThueMorseEqualsDFA (value : Nat)  (vars : List Char) : DFA_Complete (List B2) Nat where
+  automata := thue_morse
+  states := [0,1]
+  states_accept := [value]
+  alphabet := [[B2.zero], [B2.one]]
+  dead_state := some 2
+  vars := vars
+  alphabet_vars := [[B2.zero], [B2.one]]
+
+inductive binary_comparison_ops where
+  | equals
+  | less_than
+  | more_than

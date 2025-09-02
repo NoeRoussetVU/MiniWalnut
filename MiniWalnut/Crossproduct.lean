@@ -1,3 +1,4 @@
+import MiniWalnut.Basic
 import MiniWalnut.Automatons
 
 import Mathlib.Topology.Basic
@@ -35,8 +36,6 @@ match M1_states with
 | x :: xs => (combinations_for_list_help x M2_states) ++ combinations_for_list xs M2_states
 | _ => []
 
-#eval combinations_for_list [1,2,3,4,5] ['a','b','c']
-
 def get_new_alphabet {Input : Type} (alpha_1 : List (List Input)) (alpha_2 : List (List Input))
 : List (List Input) :=
 let rec get_new_alphabet_help (alpha_1_single : List Input) (alpha_2' : List (List Input)) : List (List Input) :=
@@ -48,6 +47,8 @@ let rec get_new_alphabet_help (alpha_1_single : List Input) (alpha_2' : List (Li
 match alpha_1 with
 | x :: xs => (get_new_alphabet_help x alpha_2) ++ get_new_alphabet xs alpha_2
 | _ => []
+
+#eval combinations_for_list [[1,2],[3,4],[5]] [['a'],['b','c']]
 
 --#eval get_new_alphabet dfa_one.alphabet dfa_two.alphabet
 
@@ -78,11 +79,17 @@ Cross-product on created DFAs
 -/
 
 -- Cross product of two DFAs
-def DFA_Complete.crossProduct {State1 State2 Input : Type} [Inhabited Input] [DecidableEq Input] (M1 : DFA_Complete (List Input) State1) (conj : binary_logical_ops) (M2 : DFA_Complete (List Input) State2)
+def DFA_Complete.crossProduct {State1 State2 Input : Type} [BEq State1] [BEq State2] [Inhabited Input] [DecidableEq Input] (M1 : DFA_Complete (List Input) State1) (conj : binary_logical_ops) (M2 : DFA_Complete (List Input) State2)
  : DFA_Complete (List Input) (State1 × State2) where
   states := combinations_for_list M1.states M2.states
   -- Check both alphabets, any of the same variable = get the index,
   -- and remove those from M1.alphabet
+  states_accept := match conj with
+        | binary_logical_ops.and => (combinations_for_list M1.states M2.states).filter (fun (x,y) => M1.states_accept.contains x ∧ M2.states_accept.contains y)
+        | binary_logical_ops.or => (combinations_for_list M1.states M2.states).filter (fun (x,y) => M1.states_accept.contains x ∨ M2.states_accept.contains y)
+        | binary_logical_ops.exclusive_dinjuction => (combinations_for_list M1.states M2.states).filter (fun (x,y) => (M1.states_accept.contains x ∧ !M2.states_accept.contains y) ∨ (!M1.states_accept.contains x ∧ M2.states_accept.contains y) )
+        | binary_logical_ops.impl => (combinations_for_list M1.states M2.states).filter (fun (x,y) => !(M1.states_accept.contains x ∧ !M2.states_accept.contains y) )
+        | binary_logical_ops.equiv => (combinations_for_list M1.states M2.states).filter (fun (x,y) => !(M1.states_accept.contains x ∧ !M2.states_accept.contains y) ∨ !(!M1.states_accept.contains x ∧ M2.states_accept.contains y) )
   alphabet :=
   let indices_to_remove := (get_idx_same_elements M1.vars M2.vars).filter (fun x => x < M1.vars.length)
   (get_new_alphabet M1.alphabet (M2.alphabet.map (fun x => remove_indices x (List.range x.length) indices_to_remove))).dedup
@@ -95,9 +102,9 @@ def DFA_Complete.crossProduct {State1 State2 Input : Type} [Inhabited Input] [De
   automata := {
     -- Transition function pairs the functions of the two DFAs
     -- TODO: add dead state if list length is bad
-    step := fun (q1, q2) a =>
+    step := fun st a =>
       let varias : Std.HashMap Char Input := Std.HashMap.ofList (((M1.vars ++ M2.vars).dedup.mergeSort).zip a)
-      (M1.automata.step q1 (M1.vars.map (fun x => varias[x]!)), M2.automata.step q2 (M2.vars.map (fun x => varias[x]!)))
+      (M1.automata.step st.fst (M1.vars.map (fun x => varias[x]!)),  M2.automata.step st.snd (M2.vars.map (fun x => varias[x]!)))
     -- Starting state is the pair of starting states
     start := (M1.automata.start, M2.automata.start)
     -- Accepting states are pairs where both components are accepting for AND
@@ -108,4 +115,41 @@ def DFA_Complete.crossProduct {State1 State2 Input : Type} [Inhabited Input] [De
           | binary_logical_ops.exclusive_dinjuction => {p | (p.fst ∈ M1.automata.accept ∧ p.snd ∉ M2.automata.accept) ∨ (p.fst ∉ M1.automata.accept ∧ p.snd ∈ M2.automata.accept)}
           | binary_logical_ops.impl => {p | Not (p.fst ∈ M1.automata.accept ∧ p.snd ∉ M2.automata.accept)}
           | binary_logical_ops.equiv => {p | Not (p.fst ∈ M1.automata.accept ∧ p.snd ∉ M2.automata.accept) ∧ Not ( p.snd ∈  M2.automata.accept ∧ p.fst ∉ M1.automata.accept)}
+  }
+
+-- Cross product of two DFAs
+def DFA_Complete.crossProductForAutomaticLanguages {Input : Type} [Inhabited Input] [DecidableEq Input]
+(M1 : DFA_Complete (List Input) Nat) (conj : binary_comparison_ops)
+(M2 : DFA_Complete (List Input) Nat)
+ : DFA_Complete (List Input) (Nat × Nat) where
+  states := combinations_for_list M1.states M2.states
+  -- Check both alphabets, any of the same variable = get the index,
+  -- and remove those from M1.alphabet
+  states_accept := match conj with
+        | binary_comparison_ops.equals => (combinations_for_list M1.states M2.states).filter (fun (x,y) => x == y)
+        | binary_comparison_ops.less_than => (combinations_for_list M1.states M2.states).filter (fun (x,y) => x < y)
+        | binary_comparison_ops.more_than => (combinations_for_list M1.states M2.states).filter (fun (x,y) => x > y)
+  alphabet :=
+  let indices_to_remove := (get_idx_same_elements M1.vars M2.vars).filter (fun x => x < M1.vars.length)
+  (get_new_alphabet M1.alphabet (M2.alphabet.map (fun x => remove_indices x (List.range x.length) indices_to_remove))).dedup
+  dead_state := match M1.dead_state, M2.dead_state with
+                | _, none => none
+                | none, _ => none
+                |some n, some y => some (n, y)
+  vars := (M1.vars ++ M2.vars).dedup.mergeSort
+  alphabet_vars := M1.alphabet_vars
+  automata := {
+    -- Transition function pairs the functions of the two DFAs
+    -- TODO: add dead state if list length is bad
+    step := fun st a =>
+      let varias : Std.HashMap Char Input := Std.HashMap.ofList (((M1.vars ++ M2.vars).dedup.mergeSort).zip a)
+      (M1.automata.step st.fst (M1.vars.map (fun x => varias[x]!)),  M2.automata.step st.snd (M2.vars.map (fun x => varias[x]!)))
+    -- Starting state is the pair of starting states
+    start := (M1.automata.start, M2.automata.start)
+    -- Accepting states are pairs where both components are accepting for AND
+    -- either component is accepting for OR
+    accept := match conj with
+        | binary_comparison_ops.equals => {p | ((combinations_for_list M1.states M2.states).filter (fun (x,y) => x == y)).contains p }
+        | binary_comparison_ops.less_than =>  {p | ((combinations_for_list M1.states M2.states).filter (fun (x,y) => x < y)).contains p }
+        | binary_comparison_ops.more_than =>  {p | ((combinations_for_list M1.states M2.states).filter (fun (x,y) => x > y)).contains p }
   }

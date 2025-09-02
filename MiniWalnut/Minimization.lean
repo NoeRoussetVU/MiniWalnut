@@ -91,26 +91,30 @@ match st, a with
 | "q2", 1 => "q2"
 | _, _ => "dead"
 
-def b_equals_4 := createFullEqualsDFA [[B2.one], [B2.zero], [B2.zero]] [B2.zero] ['b']
-#eval b_equals_4.states
-def c_equals_3 := createFullEqualsDFA [[B2.one], [B2.one]] [B2.zero] ['c']
-#eval c_equals_3.states
-def a_equals_b_p_c : DFA_Complete (List B2) (Nat) := createFullAdditionDFA ['a','b','c']
+def b_equals_4' := createFullEqualsDFA [[B2.one], [B2.zero], [B2.zero]] [B2.zero] ['b']
+#eval b_equals_4'.states
+def c_equals_3' := createFullEqualsDFA [[B2.one], [B2.one]] [B2.zero] ['c']
+#eval c_equals_3'.states
+def a_equals_b_p_c' : DFA_Complete (List B2)  Nat := createFullAdditionDFA ['a','b','c']
 
-#eval a_equals_b_p_c.states
+#eval a_equals_b_p_c'.states
 
-def a_bc_and_b_equals_4 := a_equals_b_p_c.crossProduct binary_logical_ops.and b_equals_4
-
+def a_bc_and_b_equals_4' := a_equals_b_p_c'.crossProduct binary_logical_ops.and b_equals_4'
+#eval a_bc_and_b_equals_4'.vars
+#eval a_bc_and_b_equals_4'.alphabet
 
 #eval minimization ([test1] ++ [test2]) test3 test4 4
 
-#eval minimization ([[(0, 0), (0, 1), (0, 2), (0, 4), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]] ++ [[(0,3)]]) a_bc_and_b_equals_4.alphabet a_bc_and_b_equals_4.automata.step 11
+#eval minimization ([[(0, 0), (0, 1), (0, 2), (0, 4), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]] ++ [[(0,3)]]) a_bc_and_b_equals_4'.alphabet a_bc_and_b_equals_4'.automata.step 11
 
-def nu_states := minimization ([[(0, 0), (0, 1), (0, 2), (0, 4), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]] ++ [[(0,3)]]) a_bc_and_b_equals_4.alphabet a_bc_and_b_equals_4.automata.step 10
+def nu_states := minimization ([[(0, 0), (0, 1), (0, 2), (0, 4), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]] ++ [[(0,3)]]) a_bc_and_b_equals_4'.alphabet a_bc_and_b_equals_4'.automata.step 10
 
 def nu_function (st : (List (ℕ × ℕ))) (a : List B2) : (List (ℕ × ℕ)) :=
 if nu_states.contains st
 then
-  let res := a_bc_and_b_equals_4.automata.step st.head! a
+  let res := a_bc_and_b_equals_4'.automata.step st.head! a
   (nu_states.filter (fun x => x.contains res)).head!
 else []
+
+#eval nu_function [(0, 4), (1, 1), (1, 2), (1, 3), (1, 4)] [B2.zero, B2.zero, B2.zero]
+#eval nu_function [(0, 4), (1, 1), (1, 2), (1, 3), (1, 4)] [B2.zero, B2.one, B2.zero]
