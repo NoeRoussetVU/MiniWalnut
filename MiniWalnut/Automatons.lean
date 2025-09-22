@@ -13,18 +13,40 @@ Defines the automatons and number basis used in Walnut
 
 -/
 
+
+inductive MyType where
+  | stringValue : String → MyType
+  | intValue : Int → MyType
+
+def processMyType (arg : MyType) : String :=
+  match arg with
+  | MyType.stringValue s => "Got string: " ++ s
+  | MyType.intValue i => "Got int: " ++ toString i
+
+#eval processMyType (MyType.stringValue "hello")  -- Create string variant
+
 -- Simple enumeration type
 inductive B2 where
   | zero
   | one
-  deriving Repr, BEq, DecidableEq, Inhabited
+  deriving Repr, BEq, DecidableEq, Inhabited, Hashable
 
-inductive binary_logical_ops where
+inductive l_ops where
   | and
   | or
   | exclusive_dinjuction
   | impl
   | equiv
+
+inductive b_ops where
+  | equals
+  | less_than
+  | more_than
+
+inductive binary_ops where
+  | logical_op : l_ops → binary_ops
+  | comparison_op : b_ops → binary_ops
+
 
 structure DFA_Complete (T : Type) (Q : Type) where
   states : List Q
@@ -84,6 +106,20 @@ def less_than : DFA (List B2) Nat := {
   accept := {x | x=1}
 }
 
+def greater_than : DFA (List B2) Nat := {
+  step := fun x y => match x,y with
+    | 0, [B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one] => 0
+    | 0, [B2.one, B2.zero] => 1
+    | 1, [B2.one, B2.one] => 1
+    | 1, [B2.zero, B2.one] => 1
+    | 1, [B2.one, B2.zero] => 1
+    | 1, [B2.zero, B2.zero] => 1
+    | _, _ => 2
+  start := 0
+  accept := {x | x=1}
+}
+
 /- Thue-Morse DFAO -/
 
 def thue_morse : DFA (List B2) Nat := {
@@ -124,7 +160,7 @@ def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Ch
 
 def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := addition
-  states := [0,1]
+  states := [0,1,2]
   states_accept := [0]
   alphabet := [[B2.zero, B2.zero, B2.zero],
   [B2.one, B2.one, B2.zero],
@@ -140,24 +176,29 @@ def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
 
 def createFullLTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := less_than
-  states := [0,1]
+  states := [0,1,2]
   states_accept := [1]
   alphabet := [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
-  [B2.one, B2.one], [B2.zero, B2.one], [B2.one, B2.zero], [B2.zero, B2.zero]]
-  dead_state := none
+  [B2.one, B2.zero]]
+  dead_state := some 2
+  vars := vars
+  alphabet_vars := [[B2.zero], [B2.one]]
+
+def createFullGTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
+  automata := greater_than
+  states := [0,1,2]
+  states_accept := [1]
+  alphabet := [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
+  [B2.one, B2.zero]]
+  dead_state := some 2
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
 
 def createThueMorseEqualsDFA (value : Nat)  (vars : List Char) : DFA_Complete (List B2) Nat where
   automata := thue_morse
-  states := [0,1]
+  states := [0,1,2]
   states_accept := [value]
   alphabet := [[B2.zero], [B2.one]]
   dead_state := some 2
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
-
-inductive binary_comparison_ops where
-  | equals
-  | less_than
-  | more_than
