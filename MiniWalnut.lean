@@ -83,7 +83,7 @@ def dfa_mt_two : DFA_Complete (List B2) Nat :={
 
 
 -- accepts a = 1 || b = 2
-def intersectionDFATwo := dfa_one.crossProduct (binary_ops.logical_op l_ops.or) dfa_two
+def intersectionDFATwo := crossproduct dfa_one (binary_ops.logical_op l_ops.or) dfa_two
 
 #eval intersectionDFATwo.alphabet
 #eval intersectionDFATwo.states
@@ -99,7 +99,7 @@ def intersectionDFATwo := dfa_one.crossProduct (binary_ops.logical_op l_ops.or) 
 #eval intersectionDFATwo.automata.eval [[B2.one,B2.one],[B2.one,B2.one],[B2.one,B2.zero]]
 
 
-def tutu := quant intersectionDFATwo [B2.zero] 'b'
+def tutu := quant intersectionDFATwo [B2.zero] 'b' quant_op.exists
 
 #eval tutu.states
 #eval tutu.states_accept
@@ -137,14 +137,6 @@ def tutu := quant intersectionDFATwo [B2.zero] 'b'
 
   -/
 
-
-def complement { Input : Type} [DecidableEq Input]
-  (M1 : DFA_Complete (List Input) (Nat)) : DFA_Complete (List Input) (Nat) :=
-  let new_accepting_states := M1.states.filter (fun x => !M1.states_accept.contains x)
-  let new_accept := {p | p ∉ M1.automata.accept ∧ M1.states.contains p}
-  let new_automata : DFA (List Input) (Nat) := {step := M1.automata.step, start := M1.automata.start, accept := new_accept}
-  {states := M1.states, states_accept := new_accepting_states, alphabet := M1.alphabet, alphabet_vars := M1.alphabet_vars, dead_state := none, vars := M1.vars, automata := new_automata}
-
 def b_equals_4 := createFullEqualsDFA [[B2.one], [B2.zero], [B2.zero]] [B2.zero] ['b']
 #eval b_equals_4.states_accept
 #eval b_equals_4.alphabet
@@ -154,7 +146,7 @@ def a_equals_b_p_c : DFA_Complete (List B2)   Nat := createFullAdditionDFA ['a',
 
 #eval a_equals_b_p_c.states_accept
 
-def a_bc_and_b4 := a_equals_b_p_c.crossProduct (binary_ops.logical_op l_ops.and) b_equals_4
+def a_bc_and_b4 := crossproduct a_equals_b_p_c (binary_ops.logical_op l_ops.and) b_equals_4
 
 #eval a_bc_and_b4.alphabet
 #eval a_bc_and_b4.states
@@ -166,7 +158,7 @@ def a_bc_and_b4 := a_equals_b_p_c.crossProduct (binary_ops.logical_op l_ops.and)
 #eval a_bc_and_b4.automata.eval [[B2.one,B2.zero,B2.zero],[B2.zero,B2.one,B2.one]]
 
 
-def a_bc_b4_c1 := a_bc_and_b4.crossProduct (binary_ops.logical_op l_ops.and) c_equals_1
+def a_bc_b4_c1 := crossproduct a_bc_and_b4 (binary_ops.logical_op l_ops.and) c_equals_1
 
 #eval a_bc_b4_c1.alphabet
 #eval a_bc_b4_c1.states.length
@@ -188,7 +180,7 @@ def a_bc_b4_c1 := a_bc_and_b4.crossProduct (binary_ops.logical_op l_ops.and) c_e
 #eval a_bc_b4_c1.automata.eval [[B2.zero, B2.one, B2.zero],[B2.zero, B2.zero, B2.zero], [B2.zero, B2.zero, B2.zero], [B2.zero, B2.zero, B2.zero] ]
 #eval a_bc_b4_c1.automata.eval [[B2.zero, B2.one, B2.zero],[B2.zero, B2.zero, B2.zero], [B2.zero, B2.zero, B2.zero], [B2.zero, B2.one, B2.zero] ]
 
-def Imtoast := quant a_bc_b4_c1 [B2.zero, B2.zero] 'b'
+def Imtoast := quant a_bc_b4_c1 [B2.zero, B2.zero] 'b' quant_op.exists
 
 #eval Imtoast.states
 #eval Imtoast.states_accept
@@ -197,7 +189,7 @@ def Imtoast := quant a_bc_b4_c1 [B2.zero, B2.zero] 'b'
 
 #eval Imtoast.automata.eval [[B2.one,B2.zero],[B2.zero,B2.zero],[B2.one,B2.one]]
 
-def Imbread := quant Imtoast [B2.zero] 'c'
+def Imbread := quant Imtoast [B2.zero] 'c' quant_op.exists
 
 #eval Imbread.states
 #eval Imbread.states_accept
@@ -221,7 +213,7 @@ def createThueMorseDFA (vars : List Char) : DFA_Complete (List B2) Nat where
 def thue_morse_a := createThueMorseDFA ['a']
 def thue_morse_b := createThueMorseDFA ['b']
 
-def t_a_equals_t_b := minimization (thue_morse_a.crossProduct (binary_ops.comparison_op b_ops.equals) thue_morse_b)
+def t_a_equals_t_b := minimization (crossproduct thue_morse_a (binary_ops.comparison_op c_ops.equals) thue_morse_b)
 
 
 #eval t_a_equals_t_b.states
@@ -243,7 +235,7 @@ def b_equals_i_p_c : DFA_Complete (List B2)  Nat := createFullAdditionDFA ['b','
 def c_equals_n_p_k : DFA_Complete (List B2)  Nat := createFullAdditionDFA ['c','n','k']
 
 
-def t_a_equals_t_b_and_a_equals_ik := (t_a_equals_t_b.crossProduct (binary_ops.logical_op l_ops.and) a_equals_i_p_k)
+def t_a_equals_t_b_and_a_equals_ik := (crossproduct t_a_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_i_p_k)
 
 #eval (t_a_equals_t_b_and_a_equals_ik).states
 #eval (t_a_equals_t_b_and_a_equals_ik).states_accept
@@ -261,21 +253,21 @@ def t_a_equals_t_b_and_a_equals_ik := (t_a_equals_t_b.crossProduct (binary_ops.l
 #eval (minimization t_a_equals_t_b_and_a_equals_ik).automata.eval [[B2.zero,B2.one]]
 
 
-def Ea_t_a_equals_t_b_and_a_equals_ik := quant t_a_equals_t_b_and_a_equals_ik [B2.zero, B2.zero, B2.zero] 'a'
+def Ea_t_a_equals_t_b_and_a_equals_ik := quant t_a_equals_t_b_and_a_equals_ik [B2.zero, B2.zero, B2.zero] 'a' quant_op.exists
 
 #eval (Ea_t_a_equals_t_b_and_a_equals_ik).dead_state
 
 
-def t_a_equals_t_b_and_a_ik_and_b_ic := minimization (Ea_t_a_equals_t_b_and_a_equals_ik.crossProduct (binary_ops.logical_op l_ops.and) b_equals_i_p_c)
-def Eab_t_a_equals_t_b_and_a_ik_and_b_ic := quant t_a_equals_t_b_and_a_ik_and_b_ic [B2.zero, B2.zero, B2.zero] 'b'
-def t_a_equals_t_b_and_a_ik_and_b_ink := minimization (Eab_t_a_equals_t_b_and_a_ik_and_b_ic.crossProduct (binary_ops.logical_op l_ops.and) c_equals_n_p_k)
+def t_a_equals_t_b_and_a_ik_and_b_ic := minimization (crossproduct Ea_t_a_equals_t_b_and_a_equals_ik (binary_ops.logical_op l_ops.and) b_equals_i_p_c)
+def Eab_t_a_equals_t_b_and_a_ik_and_b_ic := quant t_a_equals_t_b_and_a_ik_and_b_ic [B2.zero, B2.zero, B2.zero] 'b' quant_op.exists
+def t_a_equals_t_b_and_a_ik_and_b_ink := minimization (crossproduct Eab_t_a_equals_t_b_and_a_ik_and_b_ic (binary_ops.logical_op l_ops.and) c_equals_n_p_k)
 #eval t_a_equals_t_b_and_a_ik_and_b_ink.vars
 #eval t_a_equals_t_b_and_a_ik_and_b_ink.states.length
 
 
 #eval t_a_equals_t_b_and_a_ik_and_b_ic.states
 
-def Eabc_t_a_equals_t_b_and_a_ik_and_b_ink := minimization (quant t_a_equals_t_b_and_a_ik_and_b_ink [B2.zero,B2.zero,B2.zero] 'c')
+def Eabc_t_a_equals_t_b_and_a_ik_and_b_ink := minimization (quant t_a_equals_t_b_and_a_ik_and_b_ink [B2.zero,B2.zero,B2.zero] 'c' quant_op.exists)
 
 #eval Eabc_t_a_equals_t_b_and_a_ik_and_b_ink.states.length
 
@@ -287,7 +279,7 @@ def Eabc_t_a_equals_t_b_and_a_ik_and_b_ink := minimization (quant t_a_equals_t_b
 
 def k_lt_n := createFullLTDFA ['k','n']
 
-def k_lt_n_imp_th_ik_equals_th_ink := minimization (k_lt_n.crossProduct (binary_ops.logical_op l_ops.impl) Eabc_t_a_equals_t_b_and_a_ik_and_b_ink)
+def k_lt_n_imp_th_ik_equals_th_ink := minimization (crossproduct k_lt_n (binary_ops.logical_op l_ops.impl) Eabc_t_a_equals_t_b_and_a_ik_and_b_ink)
 #eval k_lt_n_imp_th_ik_equals_th_ink.states
 #eval k_lt_n_imp_th_ik_equals_th_ink.states_accept
 
@@ -297,27 +289,7 @@ def k_lt_n_imp_th_ik_equals_th_ink := minimization (k_lt_n.crossProduct (binary_
 #eval [[24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35], [1], [8], [16], [14], [13], [18], [2], [3], [4], [5], [11], [10],
   [6], [9], [20], [7], [12], [0]].length
 
-def comp_k_lt_n_imp_th_ik_equals_th_ink := complement k_lt_n_imp_th_ik_equals_th_ink
-
-#eval comp_k_lt_n_imp_th_ik_equals_th_ink.states
-#eval comp_k_lt_n_imp_th_ik_equals_th_ink.states_accept
-#eval comp_k_lt_n_imp_th_ik_equals_th_ink.automata.start
-
-def Ek_comp_k_lt_n_imp_th_ik_equals_th_ink := (quant comp_k_lt_n_imp_th_ik_equals_th_ink [B2.zero, B2.zero] 'k')
-#eval comp_k_lt_n_imp_th_ik_equals_th_ink.vars
-
-#eval Ek_comp_k_lt_n_imp_th_ik_equals_th_ink.vars
-#eval Ek_comp_k_lt_n_imp_th_ik_equals_th_ink.states.length
-
-def idx := comp_k_lt_n_imp_th_ik_equals_th_ink.vars.findIdx (· = 'k')
-def new_alphabet := (comp_k_lt_n_imp_th_ik_equals_th_ink.alphabet.map (fun x => x.eraseIdx idx)).dedup
-
-#eval idx
-#eval new_alphabet
-
-#eval Ek_comp_k_lt_n_imp_th_ik_equals_th_ink.alphabet
-#eval comp_k_lt_n_imp_th_ik_equals_th_ink.alphabet
-def Ak_k_lt_n_impl_t_ik_equals_t_ink :=  minimization (complement Ek_comp_k_lt_n_imp_th_ik_equals_th_ink)
+def Ak_k_lt_n_impl_t_ik_equals_t_ink :=  minimization (quant k_lt_n_imp_th_ik_equals_th_ink [B2.zero, B2.zero] 'k' quant_op.for_all)
 #eval Ak_k_lt_n_impl_t_ik_equals_t_ink.states.length
 
 
@@ -329,12 +301,12 @@ def Ak_k_lt_n_impl_t_ik_equals_t_ink :=  minimization (complement Ek_comp_k_lt_n
 def n_gt := createFullGTDFA ['n','a']
 def a_0 := createFullEqualsDFA [] [B2.zero] ['a']
 
-def n_gt_a0 := n_gt.crossProduct (binary_ops.logical_op l_ops.and) a_0
+def n_gt_a0 := crossproduct n_gt (binary_ops.logical_op l_ops.and) a_0
 
-def n_gt0 := minimization (quant n_gt_a0 [B2.zero] 'a')
+def n_gt0 := minimization (quant n_gt_a0 [B2.zero] 'a' quant_op.exists)
 
-def squares_in_th_word :=  minimization (n_gt0.crossProduct (binary_ops.logical_op l_ops.and) Ak_k_lt_n_impl_t_ik_equals_t_ink)
-def order_of_squares_in_th_word  := minimization (quant squares_in_th_word [B2.zero] 'i')
+def squares_in_th_word :=  minimization (crossproduct n_gt0 (binary_ops.logical_op l_ops.and) Ak_k_lt_n_impl_t_ik_equals_t_ink)
+def order_of_squares_in_th_word  := minimization (quant squares_in_th_word [B2.zero] 'i' quant_op.exists)
 
 
 #eval squares_in_th_word.states.length
@@ -395,12 +367,11 @@ def order_of_squares_in_th_word  := minimization (quant squares_in_th_word [B2.z
 
 #eval order_of_squares_in_th_word.states_accept
 
-def th_does_not_have_overlap  := minimization (quant order_of_squares_in_th_word [B2.zero] 'n')
+def th_does_not_have_overlap  := minimization (quant order_of_squares_in_th_word [B2.zero] 'n' quant_op.exists)
 
 #eval th_does_not_have_overlap.states
 #eval th_does_not_have_overlap.states_accept
 #eval th_does_not_have_overlap.vars
-
 
 /-
 
