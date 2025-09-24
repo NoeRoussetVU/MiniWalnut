@@ -1,5 +1,3 @@
-import MiniWalnut.Basic
-
 import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
 import Mathlib.Computability.NFA
@@ -25,7 +23,7 @@ inductive B2 where
   deriving Repr, BEq, DecidableEq, Inhabited, Hashable
 
 -- Extended definition for automata
-structure DFA_Complete (T : Type) (Q : Type) where
+structure DFA_extended (T : Type) (Q : Type) where
   states : List Q
   states_accept : List Q
   alphabet : List T
@@ -138,7 +136,7 @@ def createEqualsDFA {α : Type} [DecidableEq α] (word : List α) (zero : α): D
   start := 0
   accept := {word.length}  -- Only the final state after reading the complete word
 
-def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Char) : DFA_Complete (List B2) Nat where
+def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Char) : DFA_extended (List B2) Nat where
   automata := createEqualsDFA word zero
   states := (List.range (word.length + 2))
   states_accept := [word.length]
@@ -147,7 +145,7 @@ def createFullEqualsDFA (word : List (List B2)) (zero : List B2) (vars : List Ch
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
 
-def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
+def createFullAdditionDFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := addition
   states := [0,1,2]
   states_accept := [0]
@@ -163,7 +161,7 @@ def createFullAdditionDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
 
-def createFullLTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
+def createFullLTDFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := less_than
   states := [0,1,2]
   states_accept := [1]
@@ -173,7 +171,7 @@ def createFullLTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
 
-def createFullGTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
+def createFullGTDFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := greater_than
   states := [0,1,2]
   states_accept := [1]
@@ -183,10 +181,10 @@ def createFullGTDFA (vars : List Char) : DFA_Complete (List B2) Nat where
   vars := vars
   alphabet_vars := [[B2.zero], [B2.one]]
 
-def createThueMorseEqualsDFA (value : Nat)  (vars : List Char) : DFA_Complete (List B2) Nat where
+def createThueMorseEqualsDFA (values : List Nat)  (vars : List Char) : DFA_extended (List B2) Nat where
   automata := thue_morse
   states := [0,1,2]
-  states_accept := [value]
+  states_accept := values
   alphabet := [[B2.zero], [B2.one]]
   dead_state := some 2
   vars := vars
@@ -199,7 +197,7 @@ def createThueMorseEqualsDFA (value : Nat)  (vars : List Char) : DFA_Complete (L
 -/
 
 def complement { Input : Type} [DecidableEq Input]
-  (M1 : DFA_Complete (List Input) (Nat)) : DFA_Complete (List Input) (Nat) :=
+  (M1 : DFA_extended (List Input) (Nat)) : DFA_extended (List Input) (Nat) :=
   let new_accepting_states := M1.states.filter (fun x => !M1.states_accept.contains x)
   let new_accept := {p | p ∉ M1.automata.accept ∧ M1.states.contains p}
   let new_automata : DFA (List Input) (Nat) := {step := M1.automata.step, start := M1.automata.start, accept := new_accept}
@@ -224,8 +222,8 @@ def assignNumbers {State : Type} [DecidableEq State] [Hashable State] (fullList 
   (fullList.map lookupNumber, subList.map lookupNumber, mapping)
 
 def change_states_names {Input State : Type} [Inhabited Input] [DecidableEq Input] [Inhabited State] [DecidableEq State] [Hashable State]
-(M1 : DFA_Complete (List Input) State)
- : DFA_Complete (List Input) Nat :=
+(M1 : DFA_extended (List Input) State)
+ : DFA_extended (List Input) Nat :=
   let mappingas := (assignNumbers M1.states M1.states_accept)
   let new_states :=  mappingas.fst
   let new_states_accept :=  mappingas.snd.fst

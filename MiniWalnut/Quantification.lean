@@ -2,7 +2,7 @@ import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
 import Mathlib.Computability.NFA
 
-import MiniWalnut.Automatons
+import MiniWalnut.Automata
 
 -- Comparison Operators for automatic language automata building
 inductive quant_op where
@@ -46,13 +46,6 @@ def reachableWithOneOrMoreZeros {T Q : Type} [DecidableEq T] [DecidableEq Q] (st
   ) []
   allReachableStates
 
-
---#eval intersectionDFATwo.automata.step (0,1) [B2.zero,B2.one]
-
---#eval intersectionDFATwo.alphabet.map (fun x => intersectionDFATwo.automata.step (0,0) (x))
---#eval intersectionDFATwo.states.map (fun x => intersectionDFATwo.alphabet.map (fun y => intersectionDFATwo.automata.step x y))
-
-
 /-
 
   Determinization: Build a list of all states,
@@ -65,39 +58,6 @@ def reachableWithOneOrMoreZeros {T Q : Type} [DecidableEq T] [DecidableEq Q] (st
   I mean it's just depth-first search basically
 
 -/
-
-def test_states : List Nat := [1,2]
-def test_func : Nat → List B2 → List Nat
-  | 1, [B2.zero, B2.zero] => [1]
-  | 1, [B2.zero, B2.one] => [2, 3]
-  | 1, [B2.one, B2.zero] => [1]
-  | 1, [B2.one, B2.one] => [1, 3]
-  | 2, [B2.zero, B2.zero] => [1]
-  | 2, [B2.zero, B2.one] => [1,2]
-  | 2, [B2.one, B2.one] => [1]
-  | 2, [B2.one, B2.zero] => [1, 2]
-  | 3, [B2.zero, B2.zero] => [1, 3]
-  | 3, [B2.one, B2.one] => [3]
-  | _, _ => [1,2,3]
-def test_input : List B2 := [B2.zero, B2.one]
-def test_alphabet : List (List B2) := [[B2.zero, B2.zero],[B2.zero, B2.one],[B2.one, B2.zero],[B2.one, B2.one]]
-
-/-
-[(([1], 'a'), [2, 3]),
-(([1], 'b'), [1, 2, 3]),
-(([1], 'c'), [1, 2, 3]),
-(([2, 3], 'a'), [1, 3]),
-  (([2, 3], 'b'), [1, 2, 3]),
-  (([2, 3], 'c'), [1, 2, 3]),
-   (([1, 3], 'a'), [1, 2, 3]),
-   (([1, 3], 'b'), [1, 2, 3]),
-  (([1, 3], 'c'), [1, 2, 3]),
-  (([1, 2, 3], 'a'), [1, 2, 3]),
-  (([1, 2, 3], 'b'), [1, 2, 3]),
-  (([1, 2, 3], 'c'), [1, 2, 3])]
--/
-
-#eval [[[1,4]],[[5]],[[3]],[[9,6],[4]],[[4,1]],[[4,9],[6]]].mergeSort
 
 
 -- Alternative version using memoization for even better performance
@@ -152,8 +112,8 @@ def determinizeMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable 
   (determinizeWithMemo transition_function alphabet initial_state max_states initial_state_obj).fst
 
 def quant' {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [Hashable Input]
-  (M1 : DFA_Complete (List Input) (Nat)) (zero : List Input) (var : Char):
-  DFA_Complete (List Input) (List Nat) :=
+  (M1 : DFA_extended (List Input) (Nat)) (zero : List Input) (var : Char):
+  DFA_extended (List Input) (List Nat) :=
   -- Remove second item from alphabet (check var and panic and stuff idkdk)
   let idx := M1.vars.findIdx (· = var)
   let new_alphabet := (M1.alphabet.map (fun x => x.eraseIdx idx)).dedup
@@ -184,8 +144,8 @@ def quant' {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [H
 
 
 def quant {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [Hashable Input] [Inhabited Input]
-  (M1 : DFA_Complete (List Input) (Nat)) (zero : List Input) (var : Char) (op_type : quant_op):
-  DFA_Complete (List Input) (Nat) :=
+  (M1 : DFA_extended (List Input) (Nat)) (zero : List Input) (var : Char) (op_type : quant_op):
+  DFA_extended (List Input) (Nat) :=
   match op_type with
   | quant_op.exists => change_states_names (quant' M1 zero var)
   | quant_op.for_all => complement (change_states_names ((quant' (complement M1) zero var)))

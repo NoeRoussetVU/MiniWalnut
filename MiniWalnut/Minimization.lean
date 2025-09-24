@@ -2,9 +2,7 @@ import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
 import Mathlib.Computability.NFA
 
-import MiniWalnut.Basic
-import MiniWalnut.Automatons
-
+import MiniWalnut.Automata
 
 def test_state1' := [0,1,2,3]
 def test_state2' := [4]
@@ -31,29 +29,14 @@ def setDifference {α : Type} [DecidableEq α] (Y X : List α) : List α :=
 def setIntersection {α : Type} [DecidableEq α] (X Y : List α) : List α :=
   X.filter (fun x => Y.contains x)
 
-
 -- Alternative cleaner implementation with better structure
 def hopcroftMinimizationV2 {State Input : Type} [DecidableEq State] [DecidableEq Input]
-    (Q : List State)
-    (F : List State)
-    (Sigma : List Input)
-    (delta : State → Input → State)
+    (Q : List State) (F : List State) (Sigma : List Input) (delta : State → Input → State)
     : List (List State) :=
 
   -- Helper to get predecessors of a set A on symbol c
   let getPredecessors (A : List State) (c : Input) : List State :=
     Q.filter (fun q => A.contains (delta q c))
-
-  -- Helper to split a partition based on a splitter set
-  let splitPartition (P : List (List State)) (X : List State) : List (List State) :=
-    P.foldl (fun acc Y =>
-      let intersection := setIntersection X Y
-      let difference := setDifference Y X
-      if !intersection.isEmpty ∧ !difference.isEmpty then
-        intersection :: difference :: acc.filter (· ≠ Y)
-      else
-        acc
-    ) P
 
   -- Helper to update worklist W when partition P is split
   let updateWorklist (W : List (List State)) (oldY : List State) (newSets : List State × List State) : List (List State) :=
@@ -157,7 +140,6 @@ def example_transition' (state : Nat) (input : Char) : Nat :=
 
 #eval minimizeDFAHopcroft example_states' example_accepting' example_alphabet' example_transition'
 
--- Alternative implementation using breadth-first search
 def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
     (states : List Q)
     (alphabet : List T)
@@ -212,7 +194,7 @@ def example_transition'' (state : Nat) (input : Char) : Nat :=
 #eval removeUnreachableStatesBFS example_states'' example_alphabet'' example_transition'' 1
 
 def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
-  (M1 : DFA_Complete (List Input) Nat) : DFA_Complete (List Input) (List Nat) :=
+  (M1 : DFA_extended (List Input) Nat) : DFA_extended (List Input) (List Nat) :=
   let reachable_states :=   removeUnreachableStatesBFS M1.states M1.alphabet M1.automata.step M1.automata.start
   let new_states := minimizeDFAHopcroft reachable_states (M1.states_accept ∩ reachable_states) M1.alphabet M1.automata.step
   let new_accept := (new_states.filter (fun x => M1.states_accept.any (fun y => x.contains y)))
@@ -236,5 +218,5 @@ def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
 
 
 def minimization {Input : Type} [Inhabited Input] [DecidableEq Input]
-(M1 : DFA_Complete (List Input) Nat) : DFA_Complete (List Input) Nat :=
+(M1 : DFA_extended (List Input) Nat) : DFA_extended (List Input) Nat :=
   change_states_names (minimization' M1)
