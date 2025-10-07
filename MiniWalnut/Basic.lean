@@ -10,49 +10,6 @@ import MiniWalnut.Crossproduct
 import MiniWalnut.Quantification
 import MiniWalnut.Minimization
 
-  /-
-
-  Automatic Languages
-
-  Indexing automatic words (idk how that is supposed to work but I will figure it out!!!)
-
-    M(Q, q₀, δ, Σ, S_2) as DFAO for automatic word W
-
-    W[x] = @a is the automaton: (Q, q₀, F, δ, S_2)
-
-    where F = {q: O(q) = a}
-
-    W₁[x] = W₂[y]
-
-    (M₁ × M₂)(F) where F contains all (q₁,q₂) where q₁ and q₂ have the same output
-    (works same for different comparison operators!)
-
-    What if indices are arithmetic expressions and/or predicates with one free var?
-    In that case go fuck yourself, bitch
-
-    W[e1] = W[e2]
-
-    eᵢ as predicates
-    xᵢ free vars in eᵢ
-
-    xₖ = vₖ for all k
-    aᵢ = vₖ when xₖ is the free variable in eᵢ
-
-
-  -/
-/-- Automaton for equality: accepts (a, b) where a = b.
-
-    This is a 2-track automaton that reads two binary numbers simultaneously
-    and accepts if they are equal digit-by-digit.
-
-    # States
-    - 0: Valid equal relation representation (initial state, accepting)
-    - 1: Invalid representation (dead state)
-
-    # Transitions
-    - From state 0: Reading [0,0] or [1,1] stays in state 0 (valid)
-    - Everything else goes to state 1 (invalid)
--/
 def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
   let thue_morse_a := createThueMorseEqualsDFA [0,1] ['a']
   let thue_morse_b := createThueMorseEqualsDFA [0,1] ['b']

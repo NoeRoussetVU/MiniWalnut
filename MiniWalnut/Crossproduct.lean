@@ -7,8 +7,8 @@ import Mathlib.Computability.NFA
 /-!
 # Cross Product Operations for DFAs
 
-This file implements cross product operations for DFAs, which is used
-to represent logical operators between two automata and comparison operations for
+This file implements cross product operations over DFAs, which is used
+to represent logical operators between two automata languages, and comparison operations for
 DFAOs representing automatic languages.
 
 ## Main Components
@@ -176,9 +176,9 @@ def get_accepting_states (states : List (Nat × Nat))
     with the combined variable list [a, b] (duplicates removed).
 
     ### Parameters
-    - M₁: First automaton of the operation
-    - operator: Can be a logical operator or a comparison operator
-    - M₂: Second automaton of the operation
+    - `M₁`: First automaton of the operation
+    - `operator`: Can be a logical operator or a comparison operator
+    - `M₂`: Second automaton of the operation
 
     ### Algorithm
 

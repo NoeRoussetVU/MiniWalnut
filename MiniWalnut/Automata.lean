@@ -97,13 +97,6 @@ def valid_representations : DFA (List B2) Nat := {
     - From state 1: If a = b + c is an operation with a carry ([1,1,1],[0,0,1],[0,1,0])
       If [0,1,1] is read, the carry is consumed and it goes back to state 0.
     - Anything else is invalid and goes to the dead state, 2.
-
-    ### Example
-    To check if 5 = 3 + 2:
-    - 5 in binary: [1,0,1]
-    - 3 in binary: [0,1,1]
-    - 2 in binary: [0,1,0]
-    Read as: [(1,0,0), (0,1,1), (1,1,0)]
 -/
 def addition : DFA (List B2) Nat := {
   step := fun x y => match x,y with
@@ -119,6 +112,26 @@ def addition : DFA (List B2) Nat := {
   start := 0
   accept := {x | x = 0}
 }
+
+-- Example: Prove that 5 = 3 + 2 is accepted
+example :
+    -- [B2.one, B2.zero, B2.one]  5 in binary
+    -- [B2.one, B2.one]  3 in binary
+    -- [B2.one, B2.zero] 2 in binary
+    -- Pad to same length: a=101, b=011, c=010
+    let input := [[B2.one, B2.zero, B2.zero], [B2.zero, B2.one, B2.one], [B2.one, B2.one, B2.zero]]
+    addition.eval input = 0 := by
+  rfl
+
+-- Example: Prove that 3 ≠ 1 + 1 (rejected)
+example :
+    -- [B2.one, B2.one] 3 in binary
+    -- [B2.one] 1 in binary
+    -- [B2.one] 1 in binary
+    -- Pad to same length: a=11, b=01, c=01
+    let input := [[B2.one,B2.zero,B2.zero],[B2.one,B2.one,B2.one]]
+    addition.eval input ≠ 0 := by
+  simp [addition, DFA.eval, DFA.evalFrom, List.foldl]
 
 /-- Automaton for equality: accepts (a, b) where a = b.
 

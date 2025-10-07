@@ -10,6 +10,12 @@ import MiniWalnut.Automata
 This file implements DFA minimization using Hopcroft's algorithm, which is the
 most efficient algorithm for minimizing DFAs (O(n log n) where n is the number of states).
 
+## Main Components
+
+- **Set Operations**: Helper functions for set difference and intersection
+- **Hopcroft's Algorithm**: Core minimization algorithm
+- **Unreachable State Removal**: BFS to find reachable states
+
 ## Theory
 
 DFA minimization creates an equivalent DFA with the minimum number of states by:
@@ -27,36 +33,17 @@ The algorithm maintains a partition P of states and refines it:
 3. Two states q₁, q₂ are in different sets if there exists an input for which they go
 to different states
 4. Stop when no more splits are possible
-
-## Main Components
-
-- **Set Operations**: Helper functions for set difference and intersection
-- **Hopcroft's Algorithm**: Core minimization algorithm
-- **Unreachable State Removal**: BFS to find reachable states
-- **Public Interface**: Complete minimization pipeline
 -/
 
 /-!
 ## Set Operation Helpers
 -/
 
-/-- Computes set difference Y \ X (elements in Y but not in X).
-
-    ### Example
-    ```
-    setDifference [1,2,3,4] [2,4] = [1,3]
-    ```
--/
+/-- Computes set difference Y \ X (elements in Y but not in X). -/
 def setDifference {α : Type} [DecidableEq α] (Y X : List α) : List α :=
   Y.filter (fun y => !X.contains y)
 
-/-- Computes set intersection X ∩ Y (elements in both X and Y).
-
-    ### Example
-    ```
-    setIntersection [1,2,3] [2,3,4] = [2,3]
-    ```
--/
+/-- Computes set intersection X ∩ Y (elements in both X and Y). -/
 def setIntersection {α : Type} [DecidableEq α] (X Y : List α) : List α :=
   X.filter (fun x => Y.contains x)
 
@@ -66,7 +53,7 @@ def setIntersection {α : Type} [DecidableEq α] (X Y : List α) : List α :=
 
 /-- Hopcroft's algorithm for DFA minimization.
 
-    # Algorithm Overview
+    ## Algorithm Overview
 
     **Data structures:**
     - P: Partition of states (list of equivalence classes)
@@ -101,21 +88,16 @@ def setIntersection {α : Type} [DecidableEq α] (X Y : List α) : List α :=
 
     ### Returns
     List of equivalence classes (each class becomes one state in minimized DFA)
-
-    ### Example
-    If states {1, 2} are equivalent and {3, 4} are equivalent:
-    Result = [[1, 2], [3, 4]]
 -/
 def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq Input]
     (Q : List State) (F : List State) (alphabet : List Input)
     (transition_function : State → Input → State) : List (List State) :=
 
-  -- Computes predecessors: states q where δ(q, c) ∈ A
+  -- Computes predecessors: states that can reach states from A with c
   let getPredecessors (A : List State) (c : Input) : List State :=
     Q.filter (fun q => A.contains (transition_function q c))
 
   -- Updates worklist when a set Y is split into two new sets
-  -- Implements the optimization for O(n log n) complexity
   let updateWorklist (W : List (List State)) (oldY : List State)
   (newSets : List State × List State) : List (List State) :=
     let (intersection, difference) := newSets
@@ -129,7 +111,7 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
 
   -- Initialize partition and worklist
   let nonAccepting := setDifference Q F
-  let initialP := [F, nonAccepting].filter (fun x => !x.isEmpty)  -- Remove empty sets
+  let initialP := [F, nonAccepting].filter (fun x => !x.isEmpty)
   let initialW := initialP
 
   -- Main refinement loop
@@ -138,7 +120,7 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
     if max_iterations <= 0 then P  -- Safety bound to prevent infinite loops
     else
       match W with
-      | [] => P  -- Worklist empty: partition is stable, we're done!
+      | [] => P  -- Worklist empty: minimization is finished
       | A :: restW =>
         -- Process set A from worklist
         let (finalP, finalW) := alphabet.foldl (fun (currentP, currentW) c =>
@@ -148,16 +130,16 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
           -- Find which sets in current partition need to be split
           -- A set Y needs splitting if some (but not all) states in Y reach A via c
           let setsToSplit := currentP.filter (fun Y =>
-            let intersection := setIntersection X Y
-            let difference := setDifference Y X
-            !intersection.isEmpty ∧ !difference.isEmpty  -- Both parts non-empty means split needed
+            let intersection := setIntersection X Y     -- States in Y that reach A via c
+            let difference := setDifference Y X         -- States in Y that don't reach A via c
+            !intersection.isEmpty ∧ !difference.isEmpty -- Both parts non-empty means split needed
           )
 
           -- Apply all necessary splits
           setsToSplit.foldl (fun (accP, accW) Y =>
-            let intersection := setIntersection X Y  -- States in Y that reach A via c
-            let difference := setDifference Y X      -- States in Y that don't reach A via c
-            let newP := intersection :: difference :: accP.filter (· ≠ Y)  -- Replace Y with split
+            let intersection := setIntersection X Y
+            let difference := setDifference Y X
+            let newP := intersection :: difference :: accP.filter (· ≠ Y)  -- Replace Y in P with split
             let newW := updateWorklist accW Y (intersection, difference)   -- Update worklist
             (newP, newW)
           ) (currentP, currentW)
@@ -167,15 +149,6 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
       loop finalP finalW (max_iterations-1)
 
   loop initialP initialW Q.length
-
-/-- Public interface for Hopcroft's minimization algorithm.
-
-    Wrapper function that calls hopcroftMinimization with clearer parameter names.
--/
-def minimizeDFAHopcroft {State Input : Type} [DecidableEq State] [DecidableEq Input]
-    (allStates : List State) (acceptingStates : List State) (alphabet : List Input)
-    (transition : State → Input → State) : List (List State) :=
-  hopcroftMinimization allStates acceptingStates alphabet transition
 
 /-!
 ## Unreachable State Removal
@@ -247,41 +220,34 @@ def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
 
 /-- DFA minimization with equivalence class states (internal version).
 
-    ### Algorithm Pipeline
+    ### Algorithm
 
     1. **Remove unreachable states**: Use BFS from start state
-    2. **Apply Hopcroft's algorithm**: Partition reachable states into equivalence classes
+    2. **Apply Hopcroft's algorithm**: Partition equivalent states
     3. **Build minimized DFA**:
-       - States: Equivalence classes (List Nat)
-       - Start state: Class containing original start state
-       - Accepting states: Classes containing any original accepting state
-       - Transitions: δ([q], a) = [δ(q, a)] (well-defined since equivalent states
-         have identical behavior)
-
-    ### Implementation Note
-    The transition function takes the head of an equivalence class as a representative.
-    This works because all states in the class have identical transition behavior.
+       - States: Equivalence partitions
+       - Start state: Parition containing original initial state
+       - Accepting states: Partitions containing any original accepting state
+       - Transitions: Runs the original transition function on the first state of the input partition
+          and return the partition containing the obtained state
 
     ### Parameters
-    - `M1`: Original DFA to minimize
-
-    ### Returns
-    Minimized DFA where states are equivalence classes (List Nat)
+    - `M`: Original DFA to minimize
 -/
 def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
-  (M1 : DFA_extended (List Input) Nat) : DFA_extended (List Input) (List Nat) :=
+  (M : DFA_extended (List Input) Nat) : DFA_extended (List Input) (List Nat) :=
   -- Step 1: Remove unreachable states
-  let reachable_states := removeUnreachableStatesBFS M1.states M1.alphabet M1.automata.step M1.automata.start
+  let reachable_states := removeUnreachableStatesBFS M.states M.alphabet M.automata.step M.automata.start
 
   -- Step 2: Minimize using Hopcroft's algorithm (only on reachable states)
-  let new_states := minimizeDFAHopcroft reachable_states (M1.states_accept ∩ reachable_states) M1.alphabet M1.automata.step
+  let new_states := hopcroftMinimization reachable_states (M.states_accept ∩ reachable_states) M.alphabet M.automata.step
 
   -- Step 3: Determine accepting equivalence classes
   -- A class is accepting if it contains any original accepting state
-  let new_accept := (new_states.filter (fun x => M1.states_accept.any (fun y => x.contains y)))
+  let new_accept := (new_states.filter (fun x => M.states_accept.any (fun y => x.contains y)))
 
   -- Step 4: Find start equivalence class (class containing original start)
-  let new_start := (new_states.filter (fun x => x.contains M1.automata.start)).head!
+  let new_start := (new_states.filter (fun x => x.contains M.automata.start)).head!
 
   -- Step 5: Define transition function for equivalence classes
   -- Use representative (head) of each class to compute transitions
@@ -289,55 +255,31 @@ def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
     if new_states.contains st
     then
       -- Apply transition to representative, find which class it belongs to
-      let res := M1.automata.step st.head! a
+      let res := M.automata.step st.head! a
       (new_states.filter (fun x => x.contains res)).flatten
     else []  -- Invalid state
 
   -- Step 6: Build minimized DFA structure
-  let new_automobile : DFA (List Input) (List Nat) := {
+  let new_automata : DFA (List Input) (List Nat) := {
     step := fun st input => temp_f st input
     start := new_start
     accept := {p | new_accept.contains p}
   }
   {states := new_states,
    states_accept := new_accept,
-   alphabet := M1.alphabet,
-   automata := new_automobile,
-   vars := M1.vars,
+   alphabet := M.alphabet,
+   automata := new_automata,
+   vars := M.vars,
    dead_state := none}
 
-/-- DFA minimization (public interface with Nat states).
+/-- DFA minimization (public interface).
 
     Complete minimization that produces a minimal DFA equivalent to the input.
+    Rename states to natural numbers (via change_states_names)
 
-    ### Guarantees
-    The resulting DFA:
-    - Accepts exactly the same language as the input DFA
-    - Has the minimum possible number of states
-    - Has no unreachable states
-    - Has states numbered 0, 1, 2, ... for easy manipulation
-
-    ### Algorithm
-    1. Remove unreachable states (BFS)
-    2. Partition states into equivalence classes (Hopcroft's algorithm)
-    3. Build new DFA with equivalence classes as states
-    4. Rename states to natural numbers (via change_states_names)
-
-    ### Complexity
-    O(n log n) where n is the number of states (Hopcroft's algorithm)
-
-    ### Usage
-    ```lean
-    let large_dfa := crossproduct dfa1 (binary_ops.logical_op l_ops.or) dfa2
-    let minimized := minimization large_dfa  -- Reduce redundant states
-    ```
-
-    ### When to Use
-    - After cross product operations (which can create many equivalent states)
-    - After quantification (which creates powerset states)
-    - When you need canonical form for equivalence checking
-    - To improve performance of subsequent operations
+    ### Parameters
+    - `M`: Original DFA to minimize
 -/
 def minimization {Input : Type} [Inhabited Input] [DecidableEq Input]
-(M1 : DFA_extended (List Input) Nat) : DFA_extended (List Input) Nat :=
-  change_states_names (minimization' M1)
+(M : DFA_extended (List Input) Nat) : DFA_extended (List Input) Nat :=
+  change_states_names (minimization' M)
