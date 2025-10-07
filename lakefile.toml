@@ -1,15 +1,19 @@
 name = "MiniWalnut"
 version = "0.1.0"
-keywords = ["math"]
-defaultTargets = ["MiniWalnut"]
+defaultTargets = ["miniwalnut"]
 
-[leanOptions]
-pp.unicode.fun = true # pretty-prints `fun a ↦ b`
-autoImplicit = false
+[[lean_lib]]
+name = "MiniWalnut"
+
+[[lean_exe]]
+name = "miniwalnut"
+root = "Main"
+
+[[require]]
+scope = "leanprover"
+name = "doc-gen4"
+rev = "main"
 
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-
-[[lean_lib]]
-name = "MiniWalnut"

@@ -475,7 +475,7 @@ def change_states_names {Input State : Type} [Inhabited Input] [DecidableEq Inpu
     step := fun st input =>
       let tr' := tr.filter (fun ((x,y),_) => st = x ∧ input = y)
       match tr'.head? with
-      | some ((x,y),z) => z
+      | some ((_,_),z) => z
       | _ => match new_dead_state with
             | some w => w
             | _ => new_states.length+1  -- Default dead state

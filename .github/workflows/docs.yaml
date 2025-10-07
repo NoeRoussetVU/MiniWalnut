@@ -1,0 +1,57 @@
+name: build and deploy lean4 docs
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *' # once per day
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: build and deploy mathlib4 docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: clean up
+        run: |
+          rm -rf lean-toolchain
+          rm -rf lake-manifest.json
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: install elan
+        run: |
+          set -o pipefail
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: set toolchain
+        run: |
+          curl -L https://raw.githubusercontent.com/leanprover/doc-gen4/refs/heads/main/lean-toolchain | tee lean-toolchain
+
+      - name: build doc-gen4
+        run: |
+          lake build doc-gen4
+
+      - name: generate docs
+        run: |
+          lake build MiniWalnut:docs
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.lake/build/doc'
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        id: deployment
+        uses: actions/deploy-pages@v4
