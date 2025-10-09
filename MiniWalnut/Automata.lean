@@ -46,13 +46,13 @@ inductive B2 where
     - `vars`: Variable names associated with the automaton's inputs
     - `automata`: DFA structure from Mathlib
 -/
-structure DFA_extended (T : Type) (Q : Type) where
-  states : List Q
-  states_accept : List Q
-  alphabet : List T
+structure DFA_extended (T : Type) (Q : Type) [Hashable Q] [BEq Q]  where
+  states : Std.HashSet Q
+  states_accept : Std.HashSet Q
+  alphabet : Std.HashSet (List B2)
   dead_state : Option Q
   vars : List Char
-  automata : DFA T Q
+  automata : DFA (List B2) Q
 
 /-!
 
@@ -298,9 +298,9 @@ def createEqualsDFA {T : Type} [DecidableEq T]
 def createExtendedEqualsDigitDFA (word : List (List B2)) (zero : List B2) (vars : List Char)
  : DFA_extended (List B2) Nat where
   automata := createEqualsDFA word zero
-  states := (List.range (word.length + 2))
-  states_accept := [word.length]
-  alphabet := [[B2.zero], [B2.one]]
+  states := Std.HashSet.emptyWithCapacity.insertMany (List.range (word.length + 2))
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany [word.length]
+  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some (word.length + 1)
   vars := vars
 
@@ -312,9 +312,9 @@ def createExtendedEqualsDigitDFA (word : List (List B2)) (zero : List B2) (vars 
 def createExtendedEqualsDFA (vars : List Char)
  : DFA_extended (List B2) Nat where
   automata := equals
-  states := [0,1]
-  states_accept := [0]
-  alphabet := [[B2.zero, B2.zero], [B2.one, B2.one]]
+  states := Std.HashSet.emptyWithCapacity.insertMany [0,1]
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
+  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one]]
   dead_state := some 1
   vars := vars
 
@@ -326,9 +326,9 @@ def createExtendedEqualsDFA (vars : List Char)
 -/
 def createFullAdditionDFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := addition
-  states := [0,1,2]
-  states_accept := [0]
-  alphabet := [[B2.zero, B2.zero, B2.zero],
+  states :=  Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
+  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero, B2.zero],
   [B2.one, B2.one, B2.zero],
   [B2.one, B2.zero, B2.one],
   [B2.one, B2.zero, B2.zero],
@@ -346,9 +346,9 @@ def createFullAdditionDFA (vars : List Char) : DFA_extended (List B2) Nat where
 -/
 def createFullLTDFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := less_than
-  states := [0,1,2]
-  states_accept := [1]
-  alphabet := [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
+  states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany [1]
+  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
   [B2.one, B2.zero]]
   dead_state := some 2
   vars := vars
@@ -360,9 +360,9 @@ def createFullLTDFA (vars : List Char) : DFA_extended (List B2) Nat where
 -/
 def createFullGTDFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := greater_than
-  states := [0,1,2]
-  states_accept := [1]
-  alphabet := [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
+  states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany [1]
+  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
   [B2.one, B2.zero]]
   dead_state := some 2
   vars := vars
@@ -376,9 +376,9 @@ def createFullGTDFA (vars : List Char) : DFA_extended (List B2) Nat where
 def createThueMorseEqualsDFA (values : List Nat) (vars : List Char)
  : DFA_extended (List B2) Nat where
   automata := thue_morse
-  states := [0,1,2]
-  states_accept := values
-  alphabet := [[B2.zero], [B2.one]]
+  states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany values
+  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some 2
   vars := vars
 
@@ -396,11 +396,11 @@ def createThueMorseEqualsDFA (values : List Nat) (vars : List Char)
     - Excludes the dead state from accepting states
     - Preserves the transition function and start state
 -/
-def complement {Input : Type} [DecidableEq Input] [Hashable Input]
-  (M1 : DFA_extended (List Input) (Nat)) : DFA_extended (List Input) (Nat) :=
+def complement
+  (M1 : DFA_extended (List B2) (Nat)) : DFA_extended (List B2) (Nat) :=
   let new_accepting_states := M1.states.filter (fun x => !M1.states_accept.contains x)
   let new_accept := {p | p ∉ M1.automata.accept ∧ M1.states.contains p}
-  let new_automata : DFA (List Input) (Nat) := {
+  let new_automata : DFA (List B2) (Nat) := {
     step := M1.automata.step,
     start := M1.automata.start,
     accept := new_accept
@@ -456,19 +456,21 @@ def assignNumbers {State : Type} [DecidableEq State] [Hashable State]
     3. Create new DFA with Nat states
     4. Preserve all metadata (alphabet, variables, etc.)
 -/
-def change_states_names {Input State : Type} [Inhabited Input] [DecidableEq Input]
+def change_states_names {State : Type}
 [Inhabited State] [DecidableEq State] [Hashable State]
-(M1 : DFA_extended (List Input) State)
- : DFA_extended (List Input) Nat :=
-  let mappings := (assignNumbers M1.states M1.states_accept)
+(M1 : DFA_extended (List B2) State)
+ : DFA_extended (List B2) Nat :=
+  let m1_states_list := M1.states.toList
+  let m1_accept_list := M1.states_accept.toList
+  let m1_alphabet_list := M1.alphabet.toList
+  let mappings := (assignNumbers m1_states_list m1_accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst
 
   -- Build transition table
-  let transitions := M1.states.map (fun x =>
-                      M1.alphabet.map (fun z => ((mappings.snd.snd[(x)]!, z),
+  let transitions := m1_states_list.flatMap (fun x =>
+                      m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
                                                 mappings.snd.snd[(M1.automata.step (x) z)]! )))
-  let tr := transitions.flatten
 
   -- Convert dead state if it exists
   let new_dead_state := match M1.dead_state with
@@ -478,8 +480,8 @@ def change_states_names {Input State : Type} [Inhabited Input] [DecidableEq Inpu
   -- Build new automaton with Nat states using the transition table
   let automata := {
     step := fun st input =>
-      let tr' := tr.filter (fun ((x,y),_) => st = x ∧ input = y)
-      match tr'.head? with
+      let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
+      match tr.head? with
       | some ((_,_),z) => z
       | _ => match new_dead_state with
             | some w => w
@@ -488,8 +490,8 @@ def change_states_names {Input State : Type} [Inhabited Input] [DecidableEq Inpu
     accept := {p | new_states_accept.contains p}
   }
   {
-    states := new_states,
-    states_accept := new_states_accept,
+    states := Std.HashSet.emptyWithCapacity.insertMany new_states,
+    states_accept := Std.HashSet.emptyWithCapacity.insertMany new_states_accept,
     alphabet := M1.alphabet,
     dead_state := new_dead_state,
     vars := M1.vars,

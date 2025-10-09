@@ -40,29 +40,17 @@ def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
 #eval order_of_squares_in_th_word.states_accept
 #eval order_of_squares_in_th_word.vars
 
-/-#eval order_of_squares_in_th_word.automata.eval []
+#eval order_of_squares_in_th_word.automata.eval []
 #eval order_of_squares_in_th_word.automata.eval [[B2.zero]]
 
 #eval order_of_squares_in_th_word.automata.eval [[B2.one]]
 #eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero], [B2.zero], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero], [B2.zero], [B2.one]]
-
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero], [B2.one]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero], [B2.one], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero], [B2.one], [B2.one]]
-
 #eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.zero], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.zero], [B2.one]]
 
 #eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.one]]
 #eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.one], [B2.zero]]
 #eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.one], [B2.one]]
 
-#eval Std.HashSet.ofList order_of_squares_in_th_word.states-/
 
 def thue_morse_does_not_have_overlaps : DFA_extended (List B2) Nat :=
   let thue_morse_a := createThueMorseEqualsDFA [0,1] ['a']

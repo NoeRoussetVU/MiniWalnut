@@ -135,9 +135,9 @@ def remove_indices {T : Type} [Inhabited T] (alphabet : List T)
     - `less_than`: Accept if q₁ < q₂
     - `more_than`: Accept if q₁ > q₂
 -/
-def get_accepting_states (states : List (Nat × Nat))
-(M₁_accepting : List Nat) (conj : binary_ops) (M₂_accepting : List Nat)
- : List (Nat × Nat) :=
+def get_accepting_states (states : Std.HashSet (Nat × Nat))
+(M₁_accepting : Std.HashSet Nat) (conj : binary_ops) (M₂_accepting : Std.HashSet Nat)
+ : Std.HashSet (Nat × Nat) :=
   match conj with
   | binary_ops.logical_op l => match l with
         -- AND: Both must be accepting
@@ -160,6 +160,23 @@ def get_accepting_states (states : List (Nat × Nat))
         | c_ops.equals => states.filter (fun (x,y) => x == y)
         | c_ops.less_than => states.filter (fun (x,y) => x < y)
         | c_ops.more_than => states.filter (fun (x,y) => x > y)
+
+-- For pairs specifically:
+def cartesianProductPairs (s1 s2 : Std.HashSet Nat) : Std.HashSet (Nat × Nat) :=
+  s1.fold (fun acc x =>
+    s2.fold (fun acc' y => acc'.insert (x, y)) acc
+  ) Std.HashSet.emptyWithCapacity
+
+def allBinaryCombinations : Nat → List (List B2)
+  | 0 => [[]]  -- Empty list is the only combination of length 0
+  | n + 1 =>
+    let smaller := allBinaryCombinations n
+    smaller.flatMap (fun combo => [B2.zero :: combo, B2.one :: combo])
+
+#eval allBinaryCombinations 0  -- [[]]
+#eval allBinaryCombinations 1  -- [[zero], [one]]
+#eval allBinaryCombinations 2  -- [[zero, zero], [one, zero], [zero, one], [one, one]]
+#eval allBinaryCombinations 3  -- 8 combinations
 
 /-- Cross product construction.
 
@@ -212,26 +229,18 @@ def get_accepting_states (states : List (Nat × Nat))
     - Input symbols are triples [v_a, v_b, v_c]
     - M₁ reads [v_a, v_b], M₂ reads [v_b, v_c]
 -/
-def crossproduct' {Input : Type} [Inhabited Input] [DecidableEq Input]
-(M₁ : DFA_extended (List Input) Nat) (operator : binary_ops) (M₂ : DFA_extended (List Input) Nat)
- : DFA_extended (List Input) (Nat × Nat) :=
+def crossproduct'
+(M₁ : DFA_extended (List B2) Nat) (operator : binary_ops) (M₂ : DFA_extended (List B2) Nat)
+ : DFA_extended (List B2) (Nat × Nat) :=
   -- Step 1: Cartesian product of states
-  let states := (M₁.states.map (fun x => M₂.states.map (fun y => (x,y)))).flatten
-
+  let states := cartesianProductPairs M₁.states M₂.states
   -- Step 2: Determine accepting states based on the operation
   let states_accept := get_accepting_states states M₁.states_accept operator M₂.states_accept
-
-  -- Step 3: Construct the combined alphabet
+  -- Step 3: Merge and sort variable lists
+  let vars := (M₁.vars ++ M₂.vars).dedup.mergeSort
+  -- Step 4: Construct the combined alphabet
   -- Find which variables are shared and remove duplicate tracks
-  let alphabet :=
-    -- Find indices of M₁'s variables in M₂'s variable list
-    let indices_to_remove := (get_idx_same_elements M₁.vars M₂.vars).filter
-                              (fun x => x < M₂.vars.length)
-    -- Remove those tracks from M₂'s alphabet (to avoid reading shared variables twice)
-    let removed_indices_alphabet := (M₂.alphabet.map (fun x =>
-                                    remove_indices x (List.range x.length) indices_to_remove)).dedup
-    -- Combine: each M₁ symbol ++ each modified M₂ symbol
-    (M₁.alphabet.map (fun x => removed_indices_alphabet.map (fun y => x ++ y))).flatten
+  let alphabet := Std.HashSet.emptyWithCapacity.insertMany (allBinaryCombinations vars.length)
 
   -- Step 4: Dead state exists only if both have dead states
   let dead_state := match M₁.dead_state, M₂.dead_state with
@@ -239,15 +248,12 @@ def crossproduct' {Input : Type} [Inhabited Input] [DecidableEq Input]
                 | none, _ => none
                 | some n, some y => some ((n,y))
 
-  -- Step 5: Merge and sort variable lists
-  let vars := (M₁.vars ++ M₂.vars).dedup.mergeSort
-
-  -- Step 6: Define transition function
+  -- Step 5: Define transition function
   -- Maps input symbols to their corresponding variables, then extracts
   -- the relevant symbols for each component DFA
-  let temp_f := fun (st : (Nat × Nat)) (a : (List Input)) =>
+  let temp_f := fun (st : (Nat × Nat)) (a : (List B2)) =>
       -- Create mapping: variable name → input symbol at that position
-      let varias : Std.HashMap Char Input := Std.HashMap.ofList (vars.zip a)
+      let varias : Std.HashMap Char B2 := Std.HashMap.ofList (vars.zip a)
       -- Transition each component using only its variables
       ((M₁.automata.step st.fst (M₁.vars.map (fun x => varias[x]!))),
        (M₂.automata.step st.snd (M₂.vars.map (fun x => varias[x]!))))
@@ -266,6 +272,47 @@ def crossproduct' {Input : Type} [Inhabited Input] [DecidableEq Input]
     vars := vars,
     automata := automata}
 
+def change_states_names_cp
+(M1 : DFA_extended (List B2) (Nat × Nat))
+ : DFA_extended (List B2) Nat :=
+  let m1_states_list := M1.states.toList
+  let m1_accept_list := M1.states_accept.toList
+  let m1_alphabet_list := M1.alphabet.toList
+  let mappings := (assignNumbers m1_states_list m1_accept_list)
+  let new_states :=  mappings.fst
+  let new_states_accept :=  mappings.snd.fst
+
+  -- Build transition table
+  let transitions := m1_states_list.flatMap (fun x =>
+                      m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
+                                                mappings.snd.snd[(M1.automata.step (x) z)]! )))
+
+  -- Convert dead state if it exists
+  let new_dead_state := match M1.dead_state with
+                |none => none
+                |some n => some mappings.snd.snd[n]!
+
+  -- Build new automaton with Nat states using the transition table
+  let automata := {
+    step := fun st input =>
+      let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
+      match tr.head? with
+      | some ((_,_),z) => z
+      | _ => match new_dead_state with
+            | some w => w
+            | _ => new_states.length+1  -- Default dead state
+    start :=  mappings.snd.snd[M1.automata.start]!
+    accept := {p | new_states_accept.contains p}
+  }
+  {
+    states := Std.HashSet.emptyWithCapacity.insertMany new_states,
+    states_accept := Std.HashSet.emptyWithCapacity.insertMany new_states_accept,
+    alphabet := M1.alphabet,
+    dead_state := new_dead_state,
+    vars := M1.vars,
+    automata := automata
+  }
+
 /-- Cross product construction with Nat states (public interface).
 
     This is the main function to use for cross product operations.
@@ -281,7 +328,7 @@ def crossproduct' {Input : Type} [Inhabited Input] [DecidableEq Input]
     A DFA_extended with Nat states that accepts the language defined by
     the specified operation on the two input automata.
 -/
-def crossproduct {Input : Type} [Inhabited Input] [DecidableEq Input]
-(M₁ : DFA_extended (List Input) Nat) (operator : binary_ops) (M₂ : DFA_extended (List Input) Nat)
- : DFA_extended (List Input) Nat :=
-  change_states_names (crossproduct' M₁ operator M₂)
+def crossproduct
+(M₁ : DFA_extended (List B2) Nat) (operator : binary_ops) (M₂ : DFA_extended (List B2) Nat)
+ : DFA_extended (List B2) (Nat) :=
+  change_states_names_cp (crossproduct' M₁ operator M₂)

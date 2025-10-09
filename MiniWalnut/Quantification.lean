@@ -191,6 +191,12 @@ def determinizeMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable 
   let initial_state_obj := ⟨Std.HashSet.emptyWithCapacity, Std.HashMap.emptyWithCapacity⟩
   (determinizeWithMemo transition_function alphabet initial_state max_states initial_state_obj).fst
 
+def allBinaryCombinations_qt : Nat → List (List B2)
+  | 0 => [[]]  -- Empty list is the only combination of length 0
+  | n + 1 =>
+    let smaller := allBinaryCombinations_qt n
+    smaller.flatMap (fun combo => [B2.zero :: combo, B2.one :: combo])
+
 /-!
 ## Quantification Implementation
 -/
@@ -220,12 +226,17 @@ def determinizeMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable 
     5. **Accepting states**: A state set is accepting if it contains any original accepting state
        (Exists a value that leads to acceptance)
 -/
-def quant' {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [Hashable Input]
-  (M1 : DFA_extended (List Input) (Nat)) (zero : List Input) (var : Char)
-  (alphabet_vars : List (List Input)) : DFA_extended (List Input) (List Nat) :=
+def quant'
+  (M1 : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char)
+  (alphabet_vars : List (List B2)) : DFA_extended (List B2) (List Nat) :=
+
+  let m1_states_list := M1.states.toList
+  let m1_accept_list := M1.states_accept.toList
+  let m1_alphabet_list := M1.alphabet.toList
+
   -- Step 1: Find index of quantified variable and create new alphabet
   let idx := M1.vars.findIdx (· = var)
-  let new_alphabet := (M1.alphabet.map (fun x => x.eraseIdx idx)).dedup
+  let new_alphabet := allBinaryCombinations_qt (M1.vars.length - 1)
 
   -- Step 2: Create NFA transition function
   -- Given a state and input (without quantified variable), try all possible values
@@ -235,10 +246,10 @@ def quant' {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [H
       input.insertIdx idx x)).map (fun y => M1.automata.step st y)
 
   -- Step 3: Compute bound on possible number of states in powerset (2^n)
-  let num_possible_states := 2^(M1.states.length)
+  let num_possible_states := 2^(m1_states_list.length)
 
   -- Step 4: Find all initial states (those reachable via 0*)
-  let start_states := (reachableWithOneOrMoreZeros [M1.automata.start] step zero (M1.states.length)).dedup.mergeSort
+  let start_states := (reachableWithOneOrMoreZeros [M1.automata.start] step zero (m1_states_list.length)).dedup.mergeSort
 
   -- Step 5: Determinize the NFA
   let new_transitions := determinizeMemo step new_alphabet start_states num_possible_states
@@ -246,27 +257,69 @@ def quant' {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [H
   -- Step 6: Extract all states from transitions
   let new_states' := (new_transitions.map (fun ((x,_),_) => x))
      ++ (new_transitions.map (fun ((_,_),z) => z))
-  let new_states := new_states'.dedup
+  let new_states := Std.HashSet.emptyWithCapacity.insertMany new_states'
 
   -- Step 7: Determine accepting states (any original accepting state in the set)
   let states_acc := new_states.filter (fun x => M1.states_accept.any (fun y => x.contains y))
 
   -- Step 8: Build the resulting DFA
-  let dfa_list : DFA (List Input) (List Nat) :={
+  let dfa_list : DFA (List B2) (List Nat) :={
     step := fun st input =>
       let transt := (new_transitions.filter (fun ((x,y),_) => st = x ∧ input = y))
       match transt.head? with
       | some ((x,y),z) => z
-      | _ => [new_states.length + 1]  -- Dead state if no transition found
+      | _ => [new_states'.length + 1]  -- Dead state if no transition found
     start := start_states
     accept := {p | states_acc.contains p}
   }
   {states := new_states,
    states_accept := states_acc,
-   alphabet := new_alphabet,
+   alphabet := Std.HashSet.emptyWithCapacity.insertMany new_alphabet,
    dead_state := none,
    vars := M1.vars.eraseIdx idx,
    automata := dfa_list}
+
+
+def change_states_names_qt
+(M1 : DFA_extended (List B2) (List Nat))
+ : DFA_extended (List B2) Nat :=
+  let m1_states_list := M1.states.toList
+  let m1_accept_list := M1.states_accept.toList
+  let m1_alphabet_list := M1.alphabet.toList
+  let mappings := (assignNumbers m1_states_list m1_accept_list)
+  let new_states :=  mappings.fst
+  let new_states_accept :=  mappings.snd.fst
+
+  -- Build transition table
+  let transitions := m1_states_list.flatMap (fun x =>
+                      m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
+                                                mappings.snd.snd[(M1.automata.step (x) z)]! )))
+
+  -- Convert dead state if it exists
+  let new_dead_state := match M1.dead_state with
+                |none => none
+                |some n => some mappings.snd.snd[n]!
+
+  -- Build new automaton with Nat states using the transition table
+  let automata := {
+    step := fun st input =>
+      let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
+      match tr.head? with
+      | some ((_,_),z) => z
+      | _ => match new_dead_state with
+            | some w => w
+            | _ => new_states.length+1  -- Default dead state
+    start :=  mappings.snd.snd[M1.automata.start]!
+    accept := {p | new_states_accept.contains p}
+  }
+  {
+    states := Std.HashSet.emptyWithCapacity.insertMany new_states,
+    states_accept := Std.HashSet.emptyWithCapacity.insertMany new_states_accept,
+    alphabet := M1.alphabet,
+    dead_state := new_dead_state,
+    vars := M1.vars,
+    automata := automata
+  }
 
 /-- Quantification operation (public interface).
 
@@ -288,12 +341,11 @@ def quant' {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [H
     DFA_extended with Nat states representing the quantified formula
 
 -/
-def quant {Input : Type} [DecidableEq Input] [DecidableEq Input] [BEq Input] [Hashable Input]
- [Inhabited Input]
-  (M1 : DFA_extended (List Input) (Nat)) (zero : List Input) (var : Char) (op_type : quant_op)
-  (alphabet_vars : List (List Input)) : DFA_extended (List Input) (Nat) :=
+def quant
+  (M1 : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char) (op_type : quant_op)
+  (alphabet_vars : List (List B2)) : DFA_extended (List B2) (Nat) :=
   match op_type with
   | quant_op.exists =>
-      change_states_names (quant' M1 zero var alphabet_vars)
+      change_states_names_qt (quant' M1 zero var alphabet_vars)
   | quant_op.for_all =>
-      complement (change_states_names ((quant' (complement M1) zero var alphabet_vars)))
+      complement (change_states_names_qt ((quant' (complement M1) zero var alphabet_vars)))

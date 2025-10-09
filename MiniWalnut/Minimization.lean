@@ -214,6 +214,48 @@ def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
 
   reachableStates
 
+
+def change_states_names_min
+(M1 : DFA_extended (List B2) (List Nat))
+ : DFA_extended (List B2) Nat :=
+  let m1_states_list := M1.states.toList
+  let m1_accept_list := M1.states_accept.toList
+  let m1_alphabet_list := M1.alphabet.toList
+  let mappings := (assignNumbers m1_states_list m1_accept_list)
+  let new_states :=  mappings.fst
+  let new_states_accept :=  mappings.snd.fst
+
+  -- Build transition table
+  let transitions := m1_states_list.flatMap (fun x =>
+                      m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
+                                                mappings.snd.snd[(M1.automata.step (x) z)]! )))
+
+  -- Convert dead state if it exists
+  let new_dead_state := match M1.dead_state with
+                |none => none
+                |some n => some mappings.snd.snd[n]!
+
+  -- Build new automaton with Nat states using the transition table
+  let automata := {
+    step := fun st input =>
+      let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
+      match tr.head? with
+      | some ((_,_),z) => z
+      | _ => match new_dead_state with
+            | some w => w
+            | _ => new_states.length+1  -- Default dead state
+    start :=  mappings.snd.snd[M1.automata.start]!
+    accept := {p | new_states_accept.contains p}
+  }
+  {
+    states := Std.HashSet.emptyWithCapacity.insertMany new_states,
+    states_accept := Std.HashSet.emptyWithCapacity.insertMany new_states_accept,
+    alphabet := M1.alphabet,
+    dead_state := new_dead_state,
+    vars := M1.vars,
+    automata := automata
+  }
+
 /-!
 ## Complete Minimization Pipeline
 -/
@@ -236,11 +278,15 @@ def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
 -/
 def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
   (M : DFA_extended (List Input) Nat) : DFA_extended (List Input) (List Nat) :=
+  let m1_states_list := M.states.toList
+  let m1_accept_list := M.states_accept.toList
+  let m1_alphabet_list := M.alphabet.toList
+
   -- Step 1: Remove unreachable states
-  let reachable_states := removeUnreachableStatesBFS M.states M.alphabet M.automata.step M.automata.start
+  let reachable_states := removeUnreachableStatesBFS m1_states_list m1_alphabet_list M.automata.step M.automata.start
 
   -- Step 2: Minimize using Hopcroft's algorithm (only on reachable states)
-  let new_states := hopcroftMinimization reachable_states (M.states_accept ∩ reachable_states) M.alphabet M.automata.step
+  let new_states := hopcroftMinimization reachable_states (m1_accept_list ∩ reachable_states) m1_alphabet_list M.automata.step
 
   -- Step 3: Determine accepting equivalence classes
   -- A class is accepting if it contains any original accepting state
@@ -251,7 +297,7 @@ def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
 
   -- Step 5: Define transition function for equivalence classes
   -- Use representative (head) of each class to compute transitions
-  let temp_f (st : List Nat ) (a : (List Input)) : (List Nat) :=
+  let temp_f (st : List Nat ) (a : (List B2)) : (List Nat) :=
     if new_states.contains st
     then
       -- Apply transition to representative, find which class it belongs to
@@ -260,13 +306,13 @@ def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
     else []  -- Invalid state
 
   -- Step 6: Build minimized DFA structure
-  let new_automata : DFA (List Input) (List Nat) := {
+  let new_automata : DFA (List B2) (List Nat) := {
     step := fun st input => temp_f st input
     start := new_start
     accept := {p | new_accept.contains p}
   }
-  {states := new_states,
-   states_accept := new_accept,
+  {states := Std.HashSet.emptyWithCapacity.insertMany new_states,
+   states_accept := Std.HashSet.emptyWithCapacity.insertMany new_accept,
    alphabet := M.alphabet,
    automata := new_automata,
    vars := M.vars,
@@ -280,6 +326,5 @@ def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
     ### Parameters
     - `M`: Original DFA to minimize
 -/
-def minimization {Input : Type} [Inhabited Input] [DecidableEq Input]
-(M : DFA_extended (List Input) Nat) : DFA_extended (List Input) Nat :=
-  change_states_names (minimization' M)
+def minimization(M : DFA_extended (List B2) Nat) : DFA_extended (List B2) Nat :=
+  change_states_names_min (minimization' M)
