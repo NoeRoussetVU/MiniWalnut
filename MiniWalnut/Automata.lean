@@ -6,12 +6,17 @@ import Mathlib.Data.Set.Basic
 /-!
 # Automata Definitions for Walnut Operations
 
-## Main Components
+Implements the necessary components to support base-2 operations in Walnut, as well as the
+complement and state renaming operations.
 
-- **Custom Types**: Binary alphabet and extended DFA structures
-- **Basic Automata**: DFAs for arithmetic operations (addition, comparison)
-- **Special Automata**: Thue-Morse sequence automaton
-- **Operations**: Complement, state renaming, and DFA construction utilities
+### Main Components
+
+- **Binary alphabet**: Custom type to implement base-2 input for automata
+- **Extended DFA structure**: DFA with fields necessary for the decision algorithm
+- **Basic Automata**: DFA implementing base-2 operations
+- **Automatic Sequence DFAO**: Thue-Morse sequence automaton
+- **DFA construction**: Functions initializing DFAs in their extended structure
+- **Operations**: Complement and state renaming
 -/
 
 /-!
@@ -490,31 +495,3 @@ def change_states_names {Input State : Type} [Inhabited Input] [DecidableEq Inpu
     vars := M1.vars,
     automata := automata
   }
-
-/-!
-## Test Definitions
-
-The following definitions are for testing purposes.
--/
-
-/-- Test DFA using Fin type for states (bounded natural numbers). -/
-def valid_representations' : DFA (List B2) (Fin 1) := {
-  step := fun x y =>
-    let x' := x.val
-    match x',y with
-    | 0, [B2.zero] => 0
-    | 0, [B2.one] => 0
-    | 0, _ => 0
-    | _, _ => 0
-  start := 0
-  accept := {x | x=0}
-}
-
--- Test: This will fail at compile time because 3 ≥ 2
-def fin : Fin 2 := 3
-
--- Evaluates the fin definition (will show error)
-#eval fin
-
--- Check the type
-#check Fin 2
