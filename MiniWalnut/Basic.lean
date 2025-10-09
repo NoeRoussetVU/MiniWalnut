@@ -38,7 +38,6 @@ def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
 
 #eval order_of_squares_in_th_word.states
 #eval order_of_squares_in_th_word.states_accept
-#eval order_of_squares_in_th_word.vars
 
 #eval order_of_squares_in_th_word.automata.eval []
 #eval order_of_squares_in_th_word.automata.eval [[B2.zero]]

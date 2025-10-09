@@ -215,47 +215,6 @@ def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
   reachableStates
 
 
-def change_states_names_min
-(M1 : DFA_extended (List B2) (List Nat))
- : DFA_extended (List B2) Nat :=
-  let m1_states_list := M1.states.toList
-  let m1_accept_list := M1.states_accept.toList
-  let m1_alphabet_list := M1.alphabet.toList
-  let mappings := (assignNumbers m1_states_list m1_accept_list)
-  let new_states :=  mappings.fst
-  let new_states_accept :=  mappings.snd.fst
-
-  -- Build transition table
-  let transitions := m1_states_list.flatMap (fun x =>
-                      m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
-                                                mappings.snd.snd[(M1.automata.step (x) z)]! )))
-
-  -- Convert dead state if it exists
-  let new_dead_state := match M1.dead_state with
-                |none => none
-                |some n => some mappings.snd.snd[n]!
-
-  -- Build new automaton with Nat states using the transition table
-  let automata := {
-    step := fun st input =>
-      let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
-      match tr.head? with
-      | some ((_,_),z) => z
-      | _ => match new_dead_state with
-            | some w => w
-            | _ => new_states.length+1  -- Default dead state
-    start :=  mappings.snd.snd[M1.automata.start]!
-    accept := {p | new_states_accept.contains p}
-  }
-  {
-    states := Std.HashSet.emptyWithCapacity.insertMany new_states,
-    states_accept := Std.HashSet.emptyWithCapacity.insertMany new_states_accept,
-    alphabet := M1.alphabet,
-    dead_state := new_dead_state,
-    vars := M1.vars,
-    automata := automata
-  }
-
 /-!
 ## Complete Minimization Pipeline
 -/
@@ -327,4 +286,4 @@ def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
     - `M`: Original DFA to minimize
 -/
 def minimization(M : DFA_extended (List B2) Nat) : DFA_extended (List B2) Nat :=
-  change_states_names_min (minimization' M)
+  change_states_names (minimization' M)

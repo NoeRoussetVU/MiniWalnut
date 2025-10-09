@@ -39,9 +39,9 @@ inductive B2 where
     automata operations.
 
     ### Fields
-    - `states`: List of all states in the automaton
-    - `states_accept`: List of accepting states
-    - `alphabet`: The input alphabet
+    - `states`: Set of all states in the automaton
+    - `states_accept`: Set of accepting states
+    - `alphabet`: Set of the input alphabet
     - `dead_state`: Optional dead state for invalid inputs
     - `vars`: Variable names associated with the automaton's inputs
     - `automata`: DFA structure from Mathlib
@@ -118,7 +118,7 @@ def addition : DFA (List B2) Nat := {
   accept := {x | x = 0}
 }
 
--- Example: Prove that 5 = 3 + 2 is accepted
+/-- Example: Prove that 5 = 3 + 2 is accepted -/
 example :
     -- [B2.one, B2.zero, B2.one]  5 in binary
     -- [B2.one, B2.one]  3 in binary
@@ -128,7 +128,7 @@ example :
     addition.eval input = 0 := by
   rfl
 
--- Example: Prove that 3 ≠ 1 + 1 (rejected)
+/-- Example: Prove that 3 ≠ 1 + 1 is rejected -/
 example :
     -- [B2.one, B2.one] 3 in binary
     -- [B2.one] 1 in binary
@@ -136,7 +136,7 @@ example :
     -- Pad to same length: a=11, b=01, c=01
     let input := [[B2.one,B2.zero,B2.zero],[B2.one,B2.one,B2.one]]
     addition.eval input ≠ 0 := by
-  simp [addition, DFA.eval, DFA.evalFrom, List.foldl]
+  simp [addition, DFA.eval, DFA.evalFrom]
 
 /-- Automaton for equality: accepts (a, b) where a = b.
 
@@ -456,9 +456,8 @@ def assignNumbers {State : Type} [DecidableEq State] [Hashable State]
     3. Create new DFA with Nat states
     4. Preserve all metadata (alphabet, variables, etc.)
 -/
-def change_states_names {State : Type}
-[Inhabited State] [DecidableEq State] [Hashable State]
-(M1 : DFA_extended (List B2) State)
+def change_states_names
+(M1 : DFA_extended (List B2) (List Nat))
  : DFA_extended (List B2) Nat :=
   let m1_states_list := M1.states.toList
   let m1_accept_list := M1.states_accept.toList
