@@ -2,7 +2,6 @@ import MiniWalnut.Automata
 
 import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
-import Mathlib.Computability.NFA
 
 /-!
 # Cross Product Operations for DFAs

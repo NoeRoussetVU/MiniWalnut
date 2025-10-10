@@ -1,6 +1,5 @@
 import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
-import Mathlib.Computability.NFA
 import Mathlib.Data.Set.Basic
 
 /-!
