@@ -40,16 +40,18 @@ jobs:
 
       - name: build doc-gen4
         run: |
-          lake build doc-gen4
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update doc-gen4
+        working-directory: docbuild
 
       - name: generate docs
         run: |
           lake build MiniWalnut:docs
+        working-directory: docbuild
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.lake/build/doc'
+          path: 'docbuild/.lake/build/doc'
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/master'

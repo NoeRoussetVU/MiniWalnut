@@ -1,19 +1,17 @@
 name = "MiniWalnut"
 version = "0.1.0"
-defaultTargets = ["miniwalnut"]
+keywords = ["math"]
+defaultTargets = ["MiniWalnut"]
 
-[[lean_lib]]
-name = "MiniWalnut"
-
-[[lean_exe]]
-name = "miniwalnut"
-root = "Main"
-
-[[require]]
-scope = "leanprover"
-name = "doc-gen4"
-rev = "main"
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+maxSynthPendingDepth = 3
 
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
+
+[[lean_lib]]
+name = "MiniWalnut"
