@@ -27,12 +27,15 @@ def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
   let k_lt_n_imp_th_ik_equals_th_ink := minimization (crossproduct k_lt_n (binary_ops.logical_op l_ops.impl) Eabc_t_a_equals_t_b_and_a_ik_and_b_ink)
   let Ak_k_lt_n_impl_t_ik_equals_t_ink :=  minimization (quant k_lt_n_imp_th_ik_equals_th_ink [B2.zero, B2.zero] 'k' quant_op.for_all [[B2.zero], [B2.one]])
 
-  let n_gt := createFullGTDFA ['n','a']
+  let n_lt_a := createFullLTDFA ['n','a']
+  let n_eq_a := createExtendedEqualsDFA ['n','a']
+  let n_lteq_a := minimization (crossproduct n_lt_a (binary_ops.logical_op l_ops.or) n_eq_a)
   let a_0 := createExtendedEqualsDigitDFA [] [B2.zero] ['a']
-  let n_gt_a0 := crossproduct n_gt (binary_ops.logical_op l_ops.and) a_0
-  let n_gt0 := minimization (quant n_gt_a0 [B2.zero] 'a' quant_op.exists [[B2.zero], [B2.one]])
+  let n_lteq_0 := minimization (crossproduct n_lteq_a (binary_ops.logical_op l_ops.and) a_0)
+  let n_gt_0' :=  quant (n_lteq_0) [B2.zero] 'a' quant_op.exists [[B2.zero], [B2.one]]
+  let n_gt_0 :=  complement n_gt_0'
 
-  let squares_in_th_word :=  minimization (crossproduct n_gt0 (binary_ops.logical_op l_ops.and) Ak_k_lt_n_impl_t_ik_equals_t_ink)
+  let squares_in_th_word :=  minimization (crossproduct n_gt_0 (binary_ops.logical_op l_ops.and) Ak_k_lt_n_impl_t_ik_equals_t_ink)
   minimization (quant squares_in_th_word [B2.zero] 'i' quant_op.exists [[B2.zero], [B2.one]])
 
 #eval order_of_squares_in_th_word.states

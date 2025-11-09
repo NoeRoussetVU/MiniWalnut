@@ -159,6 +159,35 @@ def equals : DFA (List B2) Nat := {
   accept := {x | x = 0}
 }
 
+-- 3 = 3 is accepted
+example :
+    let input := [[B2.one, B2.one], [B2.one, B2.one]]
+    equals.eval input ∈ equals.accept := by
+  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
+
+-- 2 = 2 is accepted
+example :
+    let input := [[B2.one, B2.one], [B2.zero, B2.zero]]
+    equals.eval input ∈ equals.accept := by
+  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
+
+-- 3 ≠ 2 is rejected
+example :
+    let input := [[B2.one, B2.one], [B2.one, B2.zero]]
+    equals.eval input ∉ equals.accept := by
+  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
+
+-- 1 ≠ 0 is rejected
+example :
+    let input := [[B2.one, B2.zero]]
+    equals.eval input ∉ equals.accept := by
+  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
+
+/-- If we're in state 0, reading equal bits keeps us in state 0 -/
+theorem equals_step_same (bit : B2) :
+    equals.step 0 [bit, bit] = 0 := by
+  cases bit <;> simp [equals]
+
 /-- Automaton for less-than comparison: accepts (a, b) where a < b.
 
     This is a 2-track automaton that reads two binary numbers simultaneously
@@ -188,6 +217,60 @@ def less_than : DFA (List B2) Nat := {
   start := 0
   accept := {x | x = 1}
 }
+
+
+/-- From state 0, reading equal bits stays in state 0 -/
+theorem less_than_step_equal (bit : B2) :
+    less_than.step 0 [bit, bit] = 0 := by
+  cases bit <;> simp [less_than]
+
+/-- From state 0, reading [0,1] goes to state 1 (found a < b) -/
+theorem less_than_step_less :
+    less_than.step 0 [B2.zero, B2.one] = 1 := by
+  simp [less_than]
+
+/-- From state 0, reading [1,0] goes to state 2 (found a > b) -/
+theorem less_than_step_greater :
+    less_than.step 0 [B2.one, B2.zero] = 2 := by
+  simp [less_than]
+
+/-- Once in state 1 (a < b established), always stay in state 1 -/
+theorem less_than_step_stuck_1 (a b : B2) :
+    less_than.step 1 [a, b] = 1 := by
+  cases a <;> cases b <;> simp [less_than]
+
+/-- Once in state 2 (a > b established), always stay in state 2 -/
+theorem less_than_step_stuck_2 (a b : B2) :
+    less_than.step 2 [a, b] = 2 := by
+  cases a <;> cases b <;> simp [less_than]
+
+/-!
+## Concrete Examples
+-/
+
+-- 1 < 3 is accepted
+example :
+    let input := [[B2.zero, B2.one], [B2.one, B2.one]]
+    less_than.eval input ∈ less_than.accept := by
+  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
+
+-- 0 < 1 is accepted
+example :
+    let input := [[B2.zero, B2.one]]
+    less_than.eval input ∈ less_than.accept := by
+  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
+
+-- 3 ≮ 2 is rejected (3 > 2)
+example :
+    let input := [[B2.one, B2.one], [B2.one, B2.zero]]
+    less_than.eval input ∉ less_than.accept := by
+  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
+
+-- 2 ≮ 2 is rejected (equal)
+example :
+    let input := [[B2.one, B2.one], [B2.zero, B2.zero]]
+    less_than.eval input ∉ less_than.accept := by
+  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
 
 /-- Automaton for greater-than comparison: accepts (a, b) where a > b.
 

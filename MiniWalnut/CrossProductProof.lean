@@ -10,15 +10,27 @@ import Mathlib.Data.Set.Basic
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Logic.Function.Basic
 
-universe u1 u2 v1 v2
+/-!
+# Cross Product Proof
 
--- Proof that DFA cross product with product alphabet computes Cartesian product of languages
+This file implements proofs for a simplified version of the cross product operation.
+The simplified version creates a product automaton that processes two tracks simultaneously.
+We show examples and proofs to verify its correctness.
 
--- First, we need to define what we mean by Cartesian product of languages
-def Language.cartesianProduct {T1 : Type u1} {T2 : Type u2} (L1 : Language T1) (L2 : Language T2) : Language (T1 × T2) :=
-  {xy | ∃ x y, x ∈ L1 ∧ y ∈ L2 ∧ xy = List.zip x y}
+## Main Components
 
--- Define the cross product of two DFAs with product alphabet
+- **Cross product function**: Builds the cartesian product of two automata
+- **Examples of cross product**: Examples showing cross product accepting the tuple list of the
+two original accepted lists
+- **Proofs for empty input and single input**: Proofs showing `step`, `eval`, and `evalFrom` for
+cross product computes the same as the tuple of the original two automata for empty and single
+inputs
+- **Proofs for list input**: Proofs showing `eval` and `evalFrom` for cross product computes
+the same as the tuple of the original two automata for a list input
+
+-/
+
+/-- Define the cross product of two DFAs with product alphabet -/
 def DFA.crossProduct {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2} (M1 : DFA T1 Q1) (M2 : DFA T2 Q2)
  : DFA (T1 × T2) (Q1 × Q2) where
   -- Transition function for the product automaton
@@ -28,8 +40,63 @@ def DFA.crossProduct {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2}
   -- Accepting states are pairs where both components are accepting
   accept := {p | p.1 ∈ M1.accept ∧ p.2 ∈ M2.accept}
 
+inductive B2 where
+  | zero
+  | one
+  deriving Repr, BEq, DecidableEq, Inhabited, Hashable
 
-variable {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2} (M1 : DFA T1 Q1) (M2 : DFA T2 Q2)
+/-!
+## Example Cross Product
+
+Cross product of two automata that accept [0, 1] and [1, 0] should accept [(0, 1), (1, 0)]
+-/
+
+-- Accepts 0*1
+def accepts_1 : DFA B2 Nat where
+  step := fun x y => match x,y with
+    | 0, B2.zero => 0
+    | 0, B2.one => 1
+    | _, _ => 2
+  start := 0
+  accept := {1}
+
+-- Accepts 0*10
+def accepts_2 : DFA B2 Nat where
+  step := fun x y => match x,y with
+    | 0, B2.zero => 0
+    | 0, B2.one => 1
+    | 1, B2.zero => 2
+    | _, _ => 3
+  start := 0
+  accept := {2}
+
+def accepts_1_2 : DFA (B2 × B2) (Nat × Nat) :=
+  accepts_1.crossProduct accepts_2
+
+-- Accepts ((0,1),(1,0))
+example :
+    let input := [(B2.zero, B2.one), (B2.one, B2.zero)]
+    accepts_1_2.eval input ∈ accepts_1_2.accept := by
+  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom]
+  simp [accepts_1, accepts_2]
+
+-- Does not accept invalid input ((1,1),(0,0))
+example :
+    let input := [(B2.one, B2.one),(B2.zero, B2.zero)]
+    accepts_1_2.eval input ∉ accepts_1_2.accept := by
+  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom]
+  simp [accepts_1, accepts_2]
+
+-- Same accepting state as (accepts_1, accepts_2)
+example :
+    let input_one := [B2.zero, B2.one]
+    let input_two := [B2.one, B2.zero]
+    (accepts_1.eval input_one, accepts_2.eval input_two) ∈ accepts_1_2.accept := by
+  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom]
+  simp [accepts_1, accepts_2]
+
+variable {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2}
+(M1 : DFA T1 Q1) (M2 : DFA T2 Q2)
 
 @[simp]
 theorem crossProduct_evalFrom_nil
@@ -103,3 +170,30 @@ theorem eval_append_singleton
 theorem evalFrom_of_append (start : (Q1 × Q2)) (x y : List (T1 × T2)) :
     (M1.crossProduct M2).evalFrom start (x ++ y) = (M1.crossProduct M2).evalFrom ((M1.crossProduct M2).evalFrom start x) y :=
   List.foldl_append
+
+/-- For a list of tuple with `xy` as input for `(x,y) = xy.unzip` and starting
+from state `(s1,s2)`, `(M1.crossProduct M2).evalFrom (s1,s2) xy` evaluates the same
+reached state as `(M1.evalFrom s1 x, M2.evalFrom s2 y)` -/
+lemma DFA.evalFrom_crossProduct_unzip
+  (s1 : Q1)
+  (s2 : Q2)
+  (xy : List (T1 × T2)) :
+    (M1.crossProduct M2).evalFrom (s1, s2) xy = (M1.evalFrom s1 xy.unzip.1, M2.evalFrom s2 xy.unzip.2) := by
+  induction xy using List.reverseRecOn with
+  | nil =>
+    rfl
+  | append_singleton xs p ih =>
+    simp [ih]
+    rw [crossProduct_step_single_split]
+
+/-- For a list of tuple with `xy` as input for `(x,y) = xy.unzip`,
+`(M1.crossProduct M2).eval xy` evaluates the same reached state as `(M1.eval x, M2.eval y)` -/
+lemma DFA.step_crossProduct_unzip
+  (xy : List (T1 × T2)) :
+    (M1.crossProduct M2).eval xy = (M1.eval xy.unzip.1, M2.eval xy.unzip.2) := by
+  induction xy using List.reverseRecOn with
+  | nil =>
+    rfl
+  | append_singleton xs p ih =>
+    simp [ih]
+    rw [crossProduct_step_single_split]
