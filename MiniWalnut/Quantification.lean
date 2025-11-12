@@ -37,21 +37,17 @@ Given a DFA M over variables [x₁, x₂, ..., xₙ] and a variable xᵢ:
 ## Quantification Operator Type
 -/
 
-/-- Quantification operators for automata.
-
-    These correspond to first-order logic quantifiers applied to automata languages.
--/
+/-- Quantification operators for automata. -/
 inductive quant_op where
-  | exists   -- ∃x: accepts if there exists a value for x that makes M accept
-  | for_all  -- ∀x: accepts if M accepts for all values of x
+  | exists
+  | for_all
 
 /-!
 ## Reachability Analysis
 
 These functions find all states reachable from starting states by reading zero prefixes.
 When removing a variable track from a DFA, transitions for 0 might be created.
-In MSD (most significant digit first) representation, numbers can have leading zeros
-(e.g., 0011 = 11 in binary), meaning all states reachable with 0* should be considered initial states.
+In MSD (most significant digit first) representation, numbers can have leading zeros.
 -/
 
 /-- Return all states reachable from `currentStates` using `symbol` and `f`-/
@@ -127,10 +123,6 @@ structure DeterminizeState (Input1 : Type) [BEq Input1] [Hashable Input1] where
 
     ### Returns
     Pair of (all transitions discovered, updated memoization state)
-
-    ### Example
-    For NFA states [1, 2], input 'a', and transitions 1 --'a'--> 2 and 2 --'a'--> 3 in the original DFA,
-    the transition [1, 2] --'a'--> [2, 3] is created
 -/
 def determinizeWithMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable Input1]
   (transition_function : (Nat) → Input1 → (List Nat)) (alphabet : List Input1)
@@ -172,8 +164,6 @@ def determinizeWithMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hasha
 
 /-- Public interface for determinization with memoization.
 
-    Initializes the memoization state and runs the determinization algorithm.
-
     # Parameters
     - `transition_function`: NFA transition function
     - `alphabet`: Input alphabet
@@ -191,7 +181,7 @@ def determinizeMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable 
   (determinizeWithMemo transition_function alphabet initial_state max_states initial_state_obj).fst
 
 def allBinaryCombinations_qt : Nat → List (List B2)
-  | 0 => [[]]  -- Empty list is the only combination of length 0
+  | 0 => [[]]
   | n + 1 =>
     let smaller := allBinaryCombinations_qt n
     smaller.flatMap (fun combo => [B2.zero :: combo, B2.one :: combo])
@@ -203,7 +193,7 @@ def allBinaryCombinations_qt : Nat → List (List B2)
 /-- Existential quantification over a variable.
 
     ### Parameters
-    - `M1`: Original DFA
+    - `M`: Original DFA
     - `zero`: Zero symbol for handling leading zeros
     - `var`: Variable to quantify over
     - `alphabet_vars`: All possible values for the quantified variable
@@ -226,29 +216,29 @@ def allBinaryCombinations_qt : Nat → List (List B2)
        (Exists a value that leads to acceptance)
 -/
 def quant'
-  (M1 : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char)
+  (M : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char)
   (alphabet_vars : List (List B2)) : DFA_extended (List B2) (List Nat) :=
 
-  let m1_states_list := M1.states.toList
-  let m1_accept_list := M1.states_accept.toList
-  let m1_alphabet_list := M1.alphabet.toList
+  let m1_states_list := M.states.toList
+  let m1_accept_list := M.states_accept.toList
+  let m1_alphabet_list := M.alphabet.toList
 
   -- Step 1: Find index of quantified variable and create new alphabet
-  let idx := M1.vars.findIdx (· = var)
-  let new_alphabet := allBinaryCombinations_qt (M1.vars.length - 1)
+  let idx := M.vars.findIdx (· = var)
+  let new_alphabet := allBinaryCombinations_qt (M.vars.length - 1)
 
   -- Step 2: Create NFA transition function
   -- Given a state and input (without quantified variable), try all possible values
   -- for the quantified variable and collect all reachable states
   let step := fun st input =>
     (alphabet_vars.flatten.map (fun x =>
-      input.insertIdx idx x)).map (fun y => M1.automata.step st y)
+      input.insertIdx idx x)).map (fun y => M.automata.step st y)
 
   -- Step 3: Compute bound on possible number of states in powerset (2^n)
   let num_possible_states := 2^(m1_states_list.length)
 
   -- Step 4: Find all initial states (those reachable via 0*)
-  let start_states := (reachableWithOneOrMoreZeros [M1.automata.start] step zero (m1_states_list.length)).dedup.mergeSort
+  let start_states := (reachableWithOneOrMoreZeros [M.automata.start] step zero (m1_states_list.length)).dedup.mergeSort
 
   -- Step 5: Determinize the NFA
   let new_transitions := determinizeMemo step new_alphabet start_states num_possible_states
@@ -259,7 +249,7 @@ def quant'
   let new_states := Std.HashSet.emptyWithCapacity.insertMany new_states'
 
   -- Step 7: Determine accepting states (any original accepting state in the set)
-  let states_acc := new_states.filter (fun x => M1.states_accept.any (fun y => x.contains y))
+  let states_acc := new_states.filter (fun x => M.states_accept.any (fun y => x.contains y))
 
   -- Step 8: Build the resulting DFA
   let dfa_list : DFA (List B2) (List Nat) :={
@@ -275,7 +265,7 @@ def quant'
    states_accept := states_acc,
    alphabet := Std.HashSet.emptyWithCapacity.insertMany new_alphabet,
    dead_state := none,
-   vars := M1.vars.eraseIdx idx,
+   vars := M.vars.eraseIdx idx,
    automata := dfa_list}
 
 /-- Quantification operation (public interface).
@@ -299,10 +289,10 @@ def quant'
 
 -/
 def quant
-  (M1 : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char) (op_type : quant_op)
+  (M : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char) (op_type : quant_op)
   (alphabet_vars : List (List B2)) : DFA_extended (List B2) (Nat) :=
   match op_type with
   | quant_op.exists =>
-      change_states_names (quant' M1 zero var alphabet_vars)
+      change_states_names (quant' M zero var alphabet_vars)
   | quant_op.for_all =>
-      complement (change_states_names ((quant' (complement M1) zero var alphabet_vars)))
+      complement (change_states_names ((quant' (complement M) zero var alphabet_vars)))

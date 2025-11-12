@@ -32,11 +32,7 @@ This is used to implement operations like:
 ## Operation Type Definitions
 -/
 
-/-- Logical operators for combining automata languages.
-
-    These correspond to standard logical operations on the languages
-    accepted by two automata.
--/
+/-- Logical operators for combining automata languages. -/
 inductive l_ops where
   | and                      -- L₁ ∧ L₂: accepts if both automata accept
   | or                       -- L₁ ∨ L₂: accepts if either automaton accepts
@@ -50,14 +46,14 @@ inductive l_ops where
     need to be compared
 -/
 inductive c_ops where
-  | equals      -- Accept when state outputs are equal
-  | less_than   -- Accept when first state < second state
-  | more_than   -- Accept when first state > second state
+  | equals
+  | less_than
+  | more_than
 
 /-- Combined binary operation type encompassing both logical and comparison operations. -/
 inductive binary_ops where
-  | logical_op : l_ops → binary_ops        -- Logical operation on languages
-  | comparison_op : c_ops → binary_ops     -- Comparison operation on states
+  | logical_op : l_ops → binary_ops
+  | comparison_op : c_ops → binary_ops
 
 /-!
 ## Helper Functions for Variable and Alphabet Manipulation
@@ -160,27 +156,19 @@ def get_accepting_states (states : Std.HashSet (Nat × Nat))
         | c_ops.less_than => states.filter (fun (x,y) => x < y)
         | c_ops.more_than => states.filter (fun (x,y) => x > y)
 
--- For pairs specifically:
+-- Gets the cartesian products of states
 def cartesianProductPairs (s1 s2 : Std.HashSet Nat) : Std.HashSet (Nat × Nat) :=
   s1.fold (fun acc x =>
     s2.fold (fun acc' y => acc'.insert (x, y)) acc
   ) Std.HashSet.emptyWithCapacity
 
 def allBinaryCombinations : Nat → List (List B2)
-  | 0 => [[]]  -- Empty list is the only combination of length 0
+  | 0 => [[]]
   | n + 1 =>
     let smaller := allBinaryCombinations n
     smaller.flatMap (fun combo => [B2.zero :: combo, B2.one :: combo])
 
-#eval allBinaryCombinations 0  -- [[]]
-#eval allBinaryCombinations 1  -- [[zero], [one]]
-#eval allBinaryCombinations 2  -- [[zero, zero], [one, zero], [zero, one], [one, one]]
-#eval allBinaryCombinations 3  -- 8 combinations
-
 /-- Cross product construction.
-
-    This version creates a DFA with state type (Nat × Nat).
-    Use `crossproduct` for the version that converts to Nat states.
 
     ### Purpose
 

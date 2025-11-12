@@ -87,9 +87,6 @@ def valid_representations : DFA (List B2) Nat := {
 
 /-- Automaton for binary addition: accepts (a, b, c) where a = b + c.
 
-    This is a 3-track automaton that reads three binary numbers simultaneously
-    and accepts if they form a valid addition relation.
-
     ### States
     - 0: No carry (initial and accepting state)
     - 1: Has carry from previous position
@@ -104,43 +101,32 @@ def valid_representations : DFA (List B2) Nat := {
 -/
 def addition : DFA (List B2) Nat := {
   step := fun x y => match x,y with
-    | 0, [B2.zero, B2.zero, B2.zero] => 0  -- 0 = 0 + 0, no carry
-    | 0, [B2.one, B2.one, B2.zero] => 0    -- 1 = 1 + 0, no carry
-    | 0, [B2.one, B2.zero, B2.one] => 0    -- 1 = 0 + 1, no carry
-    | 0, [B2.one, B2.zero, B2.zero] => 1   -- 1 = 0 + 0, carry generated
-    | 1, [B2.one, B2.one, B2.one] => 1     -- 1 = 1 + 1 (+ 1), carry continues
-    | 1, [B2.zero, B2.one, B2.zero] => 1   -- 0 = 1 + 0 (+ 1), carry continues
-    | 1, [B2.zero, B2.zero, B2.one] => 1   -- 0 = 0 + 1 (+ 1), carry continues
-    | 1, [B2.zero, B2.one, B2.one] => 0    -- 0 = 1 + 1 (+ 1), carry consumed
-    | _, _ => 2                            -- Invalid input - dead state
+    | 0, [B2.zero, B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one, B2.zero] => 0
+    | 0, [B2.one, B2.zero, B2.one] => 0
+    | 0, [B2.one, B2.zero, B2.zero] => 1
+    | 1, [B2.one, B2.one, B2.one] => 1
+    | 1, [B2.zero, B2.one, B2.zero] => 1
+    | 1, [B2.zero, B2.zero, B2.one] => 1
+    | 1, [B2.zero, B2.one, B2.one] => 0
+    | _, _ => 2
   start := 0
   accept := {x | x = 0}
 }
 
 /-- Example: Prove that 5 = 3 + 2 is accepted -/
 example :
-    -- [B2.one, B2.zero, B2.one]  5 in binary
-    -- [B2.one, B2.one]  3 in binary
-    -- [B2.one, B2.zero] 2 in binary
-    -- Pad to same length: a=101, b=011, c=010
     let input := [[B2.one, B2.zero, B2.zero], [B2.zero, B2.one, B2.one], [B2.one, B2.one, B2.zero]]
     addition.eval input = 0 := by
   rfl
 
 /-- Example: Prove that 3 ≠ 1 + 1 is rejected -/
 example :
-    -- [B2.one, B2.one] 3 in binary
-    -- [B2.one] 1 in binary
-    -- [B2.one] 1 in binary
-    -- Pad to same length: a=11, b=01, c=01
     let input := [[B2.one,B2.zero,B2.zero],[B2.one,B2.one,B2.one]]
     addition.eval input ≠ 0 := by
   simp [addition, DFA.eval, DFA.evalFrom]
 
 /-- Automaton for equality: accepts (a, b) where a = b.
-
-    This is a 2-track automaton that reads two binary numbers simultaneously
-    and accepts if they are equal digit-by-digit.
 
     ### States
     - 0: Valid equal relation representation (initial state, accepting)
@@ -152,9 +138,9 @@ example :
 -/
 def equals : DFA (List B2) Nat := {
   step := fun x y => match x,y with
-    | 0, [B2.zero, B2.zero] => 0  -- 0 = 0, Equal bits
-    | 0, [B2.one, B2.one] => 0    -- 1 = 1, Equal bits
-    | _, _ => 1                   -- Different bits - reject
+    | 0, [B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one] => 0
+    | _, _ => 1
   start := 0
   accept := {x | x = 0}
 }
@@ -163,35 +149,27 @@ def equals : DFA (List B2) Nat := {
 example :
     let input := [[B2.one, B2.one], [B2.one, B2.one]]
     equals.eval input ∈ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
+  simp [equals, DFA.eval, DFA.evalFrom]
 
 -- 2 = 2 is accepted
 example :
     let input := [[B2.one, B2.one], [B2.zero, B2.zero]]
     equals.eval input ∈ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
+  simp [equals, DFA.eval, DFA.evalFrom]
 
 -- 3 ≠ 2 is rejected
 example :
     let input := [[B2.one, B2.one], [B2.one, B2.zero]]
     equals.eval input ∉ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
+  simp [equals, DFA.eval, DFA.evalFrom]
 
 -- 1 ≠ 0 is rejected
 example :
     let input := [[B2.one, B2.zero]]
     equals.eval input ∉ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom, List.foldl]
-
-/-- If we're in state 0, reading equal bits keeps us in state 0 -/
-theorem equals_step_same (bit : B2) :
-    equals.step 0 [bit, bit] = 0 := by
-  cases bit <;> simp [equals]
+  simp [equals, DFA.eval, DFA.evalFrom]
 
 /-- Automaton for less-than comparison: accepts (a, b) where a < b.
-
-    This is a 2-track automaton that reads two binary numbers simultaneously
-    and accepts if the first one is less than the second one.
 
     ### States
     - 0: Haven't seen difference yet (a = b so far)
@@ -206,101 +184,41 @@ theorem equals_step_same (bit : B2) :
 -/
 def less_than : DFA (List B2) Nat := {
   step := fun x y => match x,y with
-    | 0, [B2.zero, B2.zero] => 0  -- 0 = 0, Still equal
-    | 0, [B2.one, B2.one] => 0    -- 1 = 1, Still equal
-    | 0, [B2.zero, B2.one] => 1   -- 0 < 1, Difference found
-    | 1, [B2.one, B2.one] => 1    -- Once a < b, stays true
-    | 1, [B2.zero, B2.one] => 1   -- Once a < b, stays true
-    | 1, [B2.one, B2.zero] => 1   -- Once a < b, stays true
-    | 1, [B2.zero, B2.zero] => 1  -- Once a < b, stays true
-    | _, _ => 2                   -- a > b or invalid
+    | 0, [B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one] => 0
+    | 0, [B2.zero, B2.one] => 1
+    | 1, [B2.one, B2.one] => 1
+    | 1, [B2.zero, B2.one] => 1
+    | 1, [B2.one, B2.zero] => 1
+    | 1, [B2.zero, B2.zero] => 1
+    | _, _ => 2
   start := 0
   accept := {x | x = 1}
 }
-
-
-/-- From state 0, reading equal bits stays in state 0 -/
-theorem less_than_step_equal (bit : B2) :
-    less_than.step 0 [bit, bit] = 0 := by
-  cases bit <;> simp [less_than]
-
-/-- From state 0, reading [0,1] goes to state 1 (found a < b) -/
-theorem less_than_step_less :
-    less_than.step 0 [B2.zero, B2.one] = 1 := by
-  simp [less_than]
-
-/-- From state 0, reading [1,0] goes to state 2 (found a > b) -/
-theorem less_than_step_greater :
-    less_than.step 0 [B2.one, B2.zero] = 2 := by
-  simp [less_than]
-
-/-- Once in state 1 (a < b established), always stay in state 1 -/
-theorem less_than_step_stuck_1 (a b : B2) :
-    less_than.step 1 [a, b] = 1 := by
-  cases a <;> cases b <;> simp [less_than]
-
-/-- Once in state 2 (a > b established), always stay in state 2 -/
-theorem less_than_step_stuck_2 (a b : B2) :
-    less_than.step 2 [a, b] = 2 := by
-  cases a <;> cases b <;> simp [less_than]
-
-/-!
-## Concrete Examples
--/
 
 -- 1 < 3 is accepted
 example :
     let input := [[B2.zero, B2.one], [B2.one, B2.one]]
     less_than.eval input ∈ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
+  simp [less_than, DFA.eval, DFA.evalFrom]
 
 -- 0 < 1 is accepted
 example :
     let input := [[B2.zero, B2.one]]
     less_than.eval input ∈ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
+  simp [less_than, DFA.eval, DFA.evalFrom]
 
 -- 3 ≮ 2 is rejected (3 > 2)
 example :
     let input := [[B2.one, B2.one], [B2.one, B2.zero]]
     less_than.eval input ∉ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
+  simp [less_than, DFA.eval, DFA.evalFrom]
 
 -- 2 ≮ 2 is rejected (equal)
 example :
     let input := [[B2.one, B2.one], [B2.zero, B2.zero]]
     less_than.eval input ∉ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom, List.foldl]
-
-/-- Automaton for greater-than comparison: accepts (a, b) where a > b.
-
-    This is a 2-track automaton that reads two binary numbers simultaneously
-    and accepts if the first one is greater than the second one.
-
-    ### States
-    - 0: Haven't seen difference yet (a = b so far)
-    - 1: Seen a > b (accepting state)
-    - 2: Dead state (a < b or invalid input)
-
-    ### Transitions
-    - From state 0: If a = b stay in this state.
-      If a > b ([1,0]) is read, go to the accepting state 1.
-      if a < b is read, go to the dead state 2.
-    - From state 1: a > b will always hold here so any transition stays in 1.
--/
-def greater_than : DFA (List B2) Nat := {
-  step := fun x y => match x,y with
-    | 0, [B2.zero, B2.zero] => 0  -- 0 = 0, Still equal
-    | 0, [B2.one, B2.one] => 0    -- 1 = 1, Still equal
-    | 0, [B2.one, B2.zero] => 1   -- 1 > 0, Difference found
-    | 1, [B2.one, B2.one] => 1    -- Once a > b, stays true
-    | 1, [B2.zero, B2.one] => 1   -- Once a > b, stays true
-    | 1, [B2.one, B2.zero] => 1   -- Once a > b, stays true
-    | 1, [B2.zero, B2.zero] => 1  -- Once a > b, stays true
-    | _, _ => 2                   -- a < b or invalid
-  start := 0
-  accept := {x | x = 1}
-}
+  simp [less_than, DFA.eval, DFA.evalFrom]
 
 /-!
 ## Thue-Morse Sequence DFAO
@@ -435,20 +353,6 @@ def createFullLTDFA (vars : List Char) : DFA_extended (List B2) Nat where
   dead_state := some 2
   vars := vars
 
-/-- Creates a complete extended DFA for greater-than comparison.
-
-    ### Parameters
-    - `vars`: The name of the input track
--/
-def createFullGTDFA (vars : List Char) : DFA_extended (List B2) Nat where
-  automata := greater_than
-  states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
-  states_accept := Std.HashSet.emptyWithCapacity.insertMany [1]
-  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
-  [B2.one, B2.zero]]
-  dead_state := some 2
-  vars := vars
-
 /-- Creates a complete extended DFA for Thue-Morse sequence equality.
 
     ### Parameters
@@ -528,9 +432,6 @@ def assignNumbers {State : Type} [DecidableEq State] [Hashable State]
   (fullList.map lookupNumber, subList.map lookupNumber, mapping)
 
 /-- Converts a DFA with arbitrary state type to one with Nat states.
-
-    This function renames all states to natural numbers while preserving
-    the automaton's structure and behavior.
 
     ### Algorithm
     1. Assign numbers to all states using assignNumbers

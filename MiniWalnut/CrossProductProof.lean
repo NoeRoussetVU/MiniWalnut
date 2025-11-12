@@ -9,6 +9,7 @@ import Mathlib.Data.Nat.Basic
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Logic.Function.Basic
+import MiniWalnut.Automata
 
 /-!
 # Cross Product Proof
@@ -33,17 +34,9 @@ the same as the tuple of the original two automata for a list input
 /-- Define the cross product of two DFAs with product alphabet -/
 def DFA.crossProduct {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2} (M1 : DFA T1 Q1) (M2 : DFA T2 Q2)
  : DFA (T1 × T2) (Q1 × Q2) where
-  -- Transition function for the product automaton
   step := fun (q1, q2) (t1, t2) => (M1.step q1 t1, M2.step q2 t2)
-  -- Starting state is the pair of starting states
   start := (M1.start, M2.start)
-  -- Accepting states are pairs where both components are accepting
   accept := {p | p.1 ∈ M1.accept ∧ p.2 ∈ M2.accept}
-
-inductive B2 where
-  | zero
-  | one
-  deriving Repr, BEq, DecidableEq, Inhabited, Hashable
 
 /-!
 ## Example Cross Product
@@ -77,23 +70,20 @@ def accepts_1_2 : DFA (B2 × B2) (Nat × Nat) :=
 example :
     let input := [(B2.zero, B2.one), (B2.one, B2.zero)]
     accepts_1_2.eval input ∈ accepts_1_2.accept := by
-  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom]
-  simp [accepts_1, accepts_2]
+  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom, accepts_1, accepts_2]
 
 -- Does not accept invalid input ((1,1),(0,0))
 example :
     let input := [(B2.one, B2.one),(B2.zero, B2.zero)]
     accepts_1_2.eval input ∉ accepts_1_2.accept := by
-  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom]
-  simp [accepts_1, accepts_2]
+  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom, accepts_1, accepts_2]
 
 -- Same accepting state as (accepts_1, accepts_2)
 example :
     let input_one := [B2.zero, B2.one]
     let input_two := [B2.one, B2.zero]
     (accepts_1.eval input_one, accepts_2.eval input_two) ∈ accepts_1_2.accept := by
-  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom]
-  simp [accepts_1, accepts_2]
+  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom, accepts_1, accepts_2]
 
 variable {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2}
 (M1 : DFA T1 Q1) (M2 : DFA T2 Q2)
@@ -115,7 +105,6 @@ theorem crossProduct_evalFrom_append_singleton
     (s1 : Q1 × Q2) (a : T1 × T2) (x : List (T1 × T2)) :
     (M1.crossProduct M2).evalFrom s1 (x ++ [a]) = (M1.crossProduct M2).step ((M1.crossProduct M2).evalFrom s1 x) a := by
   simp only [DFA.evalFrom, List.foldl_append, List.foldl_cons, List.foldl_nil]
-
 
 @[simp]
 theorem crossProduct_evalFrom_nil_split

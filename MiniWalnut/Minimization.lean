@@ -35,18 +35,6 @@ to different states
 -/
 
 /-!
-## Set Operation Helpers
--/
-
-/-- Computes set difference Y \ X (elements in Y but not in X). -/
-def setDifference {α : Type} [DecidableEq α] (Y X : List α) : List α :=
-  Y.filter (fun y => !X.contains y)
-
-/-- Computes set intersection X ∩ Y (elements in both X and Y). -/
-def setIntersection {α : Type} [DecidableEq α] (X Y : List α) : List α :=
-  X.filter (fun x => Y.contains x)
-
-/-!
 ## Hopcroft's Minimization Algorithm
 -/
 
@@ -92,6 +80,12 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
     (Q : List State) (F : List State) (alphabet : List Input)
     (transition_function : State → Input → State) : List (List State) :=
 
+  let setDifference (Y X : List State) : List State :=
+  Y.filter (fun y => !X.contains y)
+
+  let setIntersection (X Y : List State) : List State :=
+  X.filter (fun x => Y.contains x)
+
   -- Computes predecessors: states that can reach states from A with c
   let getPredecessors (A : List State) (c : Input) : List State :=
     Q.filter (fun q => A.contains (transition_function q c))
@@ -121,9 +115,7 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
       match W with
       | [] => P  -- Worklist empty: minimization is finished
       | A :: restW =>
-        -- Process set A from worklist
         let (finalP, finalW) := alphabet.foldl (fun (currentP, currentW) c =>
-          -- Compute predecessors of A via symbol c
           let X := getPredecessors A c
 
           -- Find which sets in current partition need to be split
@@ -155,10 +147,6 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
 
 /-- Removes unreachable states using breadth-first search.
 
-    ### Purpose
-    Before minimization, we must remove states that cannot be reached from
-    the start state. These states don't affect the language but complicate minimization.
-
     ### Algorithm (BFS)
     1. Start with queue containing only the start state
     2. Mark start state as visited
@@ -177,9 +165,6 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
 
     ### Returns
     List of states reachable from the start state
-
-    ### Complexity
-    O(|Q| × |Σ|) where |Q| = number of states, |Σ| = alphabet size
 -/
 def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
     (states : List Q)
