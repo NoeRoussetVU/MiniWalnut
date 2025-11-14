@@ -13,7 +13,7 @@ DFAOs representing automatic languages.
 ## Main Components
 
 - **Operation Types**: Logical and comparison operators
-- **Helper Functions**: Variable alignment and alphabet manipulation
+- **Alphabet and States Computation**: Creates the cartesian product of states and input symbols
 - **Cross Product Construction**: Building product automata from two DFAs
 
 ## Theory
@@ -36,7 +36,7 @@ This is used to implement operations like:
 inductive l_ops where
   | and                      -- L₁ ∧ L₂: accepts if both automata accept
   | or                       -- L₁ ∨ L₂: accepts if either automaton accepts
-  | exclusive_dinjuction     -- L₁ ⊕ L₂: accepts if exactly one automaton accepts (XOR)
+  | xor                      -- L₁ ⊕ L₂: accepts if exactly one automaton accepts (XOR)
   | impl                     -- L₁ → L₂: accepts if M₁ doesn't accept or M₂ accepts
   | equiv                    -- L₁ ↔ L₂: accepts if both accept or both reject
 
@@ -56,60 +56,22 @@ inductive binary_ops where
   | comparison_op : c_ops → binary_ops
 
 /-!
-## Helper Functions for Variable and Alphabet Manipulation
--/
-
-/-- Finds the indices in `M₂_vars` where elements from `M₁_vars` appear.
-
-    ### Purpose
-    Used to identify which variables are shared between two automata
-    so they can be properly aligned in the cross product.
-
-    ### Parameters
-    - `M₁_vars`: Variables from automaton M₁
-    - `M₂_vars`: Variables from automaton M₂
-
-    ### Example
-    ```
-    get_idx_same_elements ['k','n'] ['i','k','n'] = [1, 2]
-    ```
-    The variables 'k' and 'n' from l1 appear at positions 1 and 2 in l2.
--/
-def get_idx_same_elements (M₁_vars : List Char) (M₂_vars : List Char) : List Nat :=
-  match M₁_vars with
-  | [] => []
-  | x :: [] => [M₂_vars.findIdx (· = x)]
-  | x :: xs => [M₂_vars.findIdx (· = x)] ++ (get_idx_same_elements xs M₂_vars)
-
-/-- Removes elements at specified indices from a list.
-
-    ### Purpose
-    When combining automata with shared variables, we need to remove shared variables
-    appearing in both automata.
-
-    ### Parameters
-    - `alphabet`: The alphabet (list of symbols)
-    - `indices`: All valid indices [0, 1, 2, ...]
-    - `indices_to_remove`: Which indices to skip
-
-    ### Example
-    ```
-    remove_indices [B2.zero, B2.one, B2.one] [0,1,2] [2] = [B2.zero, B2.one]
-    ```
-    Removes the element at index 2.
--/
-def remove_indices {T : Type} [Inhabited T] (alphabet : List T)
-(indices : List Nat) (indices_to_remove : List Nat) : List T :=
-  match indices with
-  | [] => []
-  | x :: [] => if indices_to_remove.contains x then [] else [alphabet[x]!]
-  | x :: xs => if indices_to_remove.contains x then remove_indices alphabet xs indices_to_remove
-              else [alphabet[x]!] ++ (remove_indices alphabet xs indices_to_remove)
-
-/-!
 ## Cross Product Construction
   - Main functions that create the cross product of two given automata.
 -/
+
+/-- Gets the cartesian products of states sets `s1` and `s2` -/
+def states_construction (s1 s2 : Std.HashSet Nat) : Std.HashSet (Nat × Nat) :=
+  s1.fold (fun acc x =>
+    s2.fold (fun acc' y => acc'.insert (x, y)) acc
+  ) Std.HashSet.emptyWithCapacity
+
+/-- Gets all possible symbols of length `input_length` -/
+def alphabet_construction : (input_length : Nat) → List (List B2)
+  | 0 => [[]]
+  | n + 1 =>
+    let smaller := alphabet_construction n
+    smaller.flatMap (fun combo => [B2.zero :: combo, B2.one :: combo])
 
 /-- Determines which states in the cross product should be accepting.
 
@@ -142,7 +104,7 @@ def get_accepting_states (states : Std.HashSet (Nat × Nat))
         | l_ops.or => states.filter (fun (x,y) =>
             M₁_accepting.contains x ∨ M₂_accepting.contains y)
         -- XOR: Exactly one must be accepting
-        | l_ops.exclusive_dinjuction => states.filter (fun (x,y) =>
+        | l_ops.xor => states.filter (fun (x,y) =>
             (Bool.xor (M₁_accepting.contains x) (M₂_accepting.contains y)))
         -- IMPLIES: !M₁ ∨ M₂, equivalent to !(M₁ ∧ M₂)
         | l_ops.impl => states.filter (fun (x,y) =>
@@ -156,28 +118,7 @@ def get_accepting_states (states : Std.HashSet (Nat × Nat))
         | c_ops.less_than => states.filter (fun (x,y) => x < y)
         | c_ops.more_than => states.filter (fun (x,y) => x > y)
 
--- Gets the cartesian products of states
-def cartesianProductPairs (s1 s2 : Std.HashSet Nat) : Std.HashSet (Nat × Nat) :=
-  s1.fold (fun acc x =>
-    s2.fold (fun acc' y => acc'.insert (x, y)) acc
-  ) Std.HashSet.emptyWithCapacity
-
-def allBinaryCombinations : Nat → List (List B2)
-  | 0 => [[]]
-  | n + 1 =>
-    let smaller := allBinaryCombinations n
-    smaller.flatMap (fun combo => [B2.zero :: combo, B2.one :: combo])
-
 /-- Cross product construction.
-
-    ### Purpose
-
-    Given two automata
-    - M₁ := DFA for "a < b" with variables [a, b]
-    - M₂ := DFA for "a = b" with variables [a, b]
-
-    Then M₁ | M₂ (OR operation) creates a DFA for "a < b ∨ a = b" (i.e., a ≤ b)
-    with the combined variable list [a, b] (duplicates removed).
 
     ### Parameters
     - `M₁`: First automaton of the operation
@@ -206,36 +147,24 @@ def allBinaryCombinations : Nat → List (List B2)
        - Create variable→symbol mapping from merged variable list
        - Each component DFA reads only its own variables from the input
        - Transition: (q₁, q₂) --[input]--> (δ₁(q₁, input|vars₁), δ₂(q₂, input|vars₂))
-
-    ### Example
-    If M₁ has variables [a, b] and M₂ has variables [b, c]:
-    - Get all new states computing the Cartesian product
-    - Determine which states are accepting based on the input operator
-    - Shared variable: 'b'
-    - Combined variables: [a, b, c]
-    - Input symbols are triples [v_a, v_b, v_c]
-    - M₁ reads [v_a, v_b], M₂ reads [v_b, v_c]
 -/
 def crossproduct'
 (M₁ : DFA_extended (List B2) Nat) (operator : binary_ops) (M₂ : DFA_extended (List B2) Nat)
  : DFA_extended (List B2) (Nat × Nat) :=
   -- Step 1: Cartesian product of states
-  let states := cartesianProductPairs M₁.states M₂.states
+  let states := states_construction M₁.states M₂.states
   -- Step 2: Determine accepting states based on the operation
   let states_accept := get_accepting_states states M₁.states_accept operator M₂.states_accept
   -- Step 3: Merge and sort variable lists
   let vars := (M₁.vars ++ M₂.vars).dedup.mergeSort
   -- Step 4: Construct the combined alphabet
-  -- Find which variables are shared and remove duplicate tracks
-  let alphabet := Std.HashSet.emptyWithCapacity.insertMany (allBinaryCombinations vars.length)
-
-  -- Step 4: Dead state exists only if both have dead states
+  let alphabet := Std.HashSet.emptyWithCapacity.insertMany (alphabet_construction vars.length)
+  -- Step 5: Dead state exists only if both have dead states
   let dead_state := match M₁.dead_state, M₂.dead_state with
                 | _, none => none
                 | none, _ => none
                 | some n, some y => some ((n,y))
-
-  -- Step 5: Define transition function
+  -- Step 6: Define transition function
   -- Maps input symbols to their corresponding variables, then extracts
   -- the relevant symbols for each component DFA
   let temp_f := fun (st : (Nat × Nat)) (a : (List B2)) =>

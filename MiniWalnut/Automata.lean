@@ -235,7 +235,7 @@ This automaton computes the Thue-Morse value at position n given n in binary.
 
     Reads a binary number (position n) and the state represents the Thue-Morse value.
 
-    # States
+    ### States
     - 0: Thue-Morse value at position n is 0
     - 1: Thue-Morse value at position n is 1
     - 2: Dead state
