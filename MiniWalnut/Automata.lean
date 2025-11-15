@@ -114,13 +114,13 @@ def addition : DFA (List B2) Nat := {
   accept := {x | x = 0}
 }
 
-/-- Example: Prove that 5 = 3 + 2 is accepted -/
+-- 5 = 3 + 2 is accepted
 example :
     let input := [[B2.one, B2.zero, B2.zero], [B2.zero, B2.one, B2.one], [B2.one, B2.one, B2.zero]]
     addition.eval input = 0 := by
   rfl
 
-/-- Example: Prove that 3 ≠ 1 + 1 is rejected -/
+-- 3 ≠ 1 + 1 is rejected
 example :
     let input := [[B2.one,B2.zero,B2.zero],[B2.one,B2.one,B2.one]]
     addition.eval input ≠ 0 := by
@@ -273,7 +273,7 @@ These functions create DFA_extended structures that wrap DFAs with all necessary
     - From state x > 0: If the input at index x of the accepted word is read, go to state x + 1,
       else go to the dead state. If x = word.length, any input goes to the dead state.
 -/
-def createEqualsDFA {T : Type} [DecidableEq T]
+def build_equals_digit_base {T : Type} [DecidableEq T]
 (word : List T) (zero : T) : DFA T Nat where
   step := fun state symbol =>
     -- If we're at position i and see the expected symbol, advance to i+1
@@ -295,28 +295,28 @@ def createEqualsDFA {T : Type} [DecidableEq T]
     - `zero`: The "zero" symbol for padding
     - `vars`: The name of the input track
 -/
-def createExtendedEqualsDigitDFA (word : List (List B2)) (zero : List B2) (vars : List Char)
+def build_equals_digit_DFA (word : List (List B2)) (zero : List B2) (vars : List Char)
  : DFA_extended (List B2) Nat where
-  automata := createEqualsDFA word zero
+  automata := build_equals_digit_base word zero
   states := Std.HashSet.emptyWithCapacity.insertMany (List.range (word.length + 2))
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [word.length]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some (word.length + 1)
-  vars := vars
+  vars := if vars.length == 1 then vars.mergeSort else panic! "Must have 1 variable"
 
 /-- Creates a complete extended DFA for variable equality.
 
     ### Parameters
     - `vars`: The name of the input track
 -/
-def createExtendedEqualsDFA (vars : List Char)
+def build_equals_DFA (vars : List Char)
  : DFA_extended (List B2) Nat where
   automata := equals
   states := Std.HashSet.emptyWithCapacity.insertMany [0,1]
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one]]
   dead_state := some 1
-  vars := vars
+  vars := if vars.length == 2 then vars.mergeSort else panic! "Must have 2 variables"
 
 
 /-- Creates a complete extended DFA for addition with all metadata.
@@ -324,7 +324,7 @@ def createExtendedEqualsDFA (vars : List Char)
     ### Parameters
     - `vars`: The name of the input tracks
 -/
-def createFullAdditionDFA (vars : List Char) : DFA_extended (List B2) Nat where
+def build_addition_DFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := addition
   states :=  Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
@@ -337,21 +337,21 @@ def createFullAdditionDFA (vars : List Char) : DFA_extended (List B2) Nat where
   [B2.zero, B2.zero, B2.one],
   [B2.zero, B2.one, B2.one]]
   dead_state := some 2
-  vars := vars
+  vars := if vars.length == 3 then vars.mergeSort else panic! "Must have 3 variables"
 
 /-- Creates a complete extended DFA for less-than comparison.
 
     ### Parameters
     - `vars`: The name of the input track
 -/
-def createFullLTDFA (vars : List Char) : DFA_extended (List B2) Nat where
+def build_less_than_DFA (vars : List Char) : DFA_extended (List B2) Nat where
   automata := less_than
   states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [1]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
   [B2.one, B2.zero]]
   dead_state := some 2
-  vars := vars
+  vars := if vars.length == 2 then vars.mergeSort else panic! "Must have 2 variables"
 
 /-- Creates a complete extended DFA for Thue-Morse sequence equality.
 
@@ -359,77 +359,54 @@ def createFullLTDFA (vars : List Char) : DFA_extended (List B2) Nat where
     - `values`: List of Thue-Morse values to accept (typically [0] or [1])
     - `vars`: The name of the input track
 -/
-def createThueMorseEqualsDFA (values : List Nat) (vars : List Char)
+def build_TH_equals_digit_DFA (values : List Nat) (vars : List Char)
  : DFA_extended (List B2) Nat where
   automata := thue_morse
   states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
   states_accept := Std.HashSet.emptyWithCapacity.insertMany values
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some 2
-  vars := vars
+  vars := if vars.length == 2 then vars.mergeSort else panic! "Must have 2 variables"
 
 /-!
 ## Automata Operations
 -/
 
-/-- Complement operation: creates a DFA that accepts the complement language.
-
-    Takes a DFA and returns a new DFA that accepts exactly the strings
-    the original DFA rejects.
-
-    ### Algorithm
-    - New accepting states = all states except original accepting states
-    - Excludes the dead state from accepting states
-    - Preserves the transition function and start state
--/
+/-- Complement operation: creates a DFA that accepts the complement language. -/
 def complement
-  (M1 : DFA_extended (List B2) (Nat)) : DFA_extended (List B2) (Nat) :=
-  let new_accepting_states := M1.states.filter (fun x => !M1.states_accept.contains x)
-  let new_accept := {p | p ∉ M1.automata.accept ∧ M1.states.contains p}
+  (M : DFA_extended (List B2) (Nat)) : DFA_extended (List B2) (Nat) :=
+  let new_accepting_states := M.states.filter (fun x => !M.states_accept.contains x)
+  let new_accept := {p | p ∉ M.automata.accept ∧ M.states.contains p}
   let new_automata : DFA (List B2) (Nat) := {
-    step := M1.automata.step,
-    start := M1.automata.start,
+    step := M.automata.step,
+    start := M.automata.start,
     accept := new_accept
   }
   {
-    states := M1.states,
+    states := M.states,
     states_accept := new_accepting_states,
-    alphabet := M1.alphabet,
+    alphabet := M.alphabet,
     dead_state := none,
-    vars := M1.vars,
+    vars := M.vars,
     automata := new_automata
   }
 
-/-!
-## State Renaming Utilities
-
-Functions to convert DFA states from arbitrary types to natural numbers.
-This is useful for normalizing DFAs and enabling comparisons.
--/
-
 /-- Assigns unique natural numbers to states in a DFA.
-
-    ### Parameters
-    - `fullList`: All states in the DFA
-    - `subList`: Accepting states
 
     ### Returns
     A triple: (numbered states, numbered accepting states, state→number mapping)
 -/
-def assignNumbers {State : Type} [DecidableEq State] [Hashable State]
-(fullList : List State) (subList : List State) : (List ℕ × List ℕ × Std.HashMap State ℕ) :=
-  -- Remove duplicates while preserving order
-  let uniqueElements := fullList.foldl (fun acc elem =>
+def assign_numbers {State : Type} [DecidableEq State] [Hashable State]
+(all_states : List State) (accepting_states : List State) : (List ℕ × List ℕ × Std.HashMap State ℕ) :=
+  let uniqueElements := all_states.foldl (fun acc elem =>
     if elem ∈ acc then acc else acc ++ [elem]) []
 
-  -- Create mapping from states to indices
   let mapping := Std.HashMap.ofList uniqueElements.zipIdx
 
-  -- Helper to look up state numbers
   let lookupNumber (elem : State) : ℕ :=
     mapping[elem]!
 
-  (fullList.map lookupNumber, subList.map lookupNumber, mapping)
+  (all_states.map lookupNumber, accepting_states.map lookupNumber, mapping)
 
 /-- Converts a DFA with arbitrary state type to one with Nat states.
 
@@ -445,7 +422,7 @@ def change_states_names
   let m1_states_list := M1.states.toList
   let m1_accept_list := M1.states_accept.toList
   let m1_alphabet_list := M1.alphabet.toList
-  let mappings := (assignNumbers m1_states_list m1_accept_list)
+  let mappings := (assign_numbers m1_states_list m1_accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst
 

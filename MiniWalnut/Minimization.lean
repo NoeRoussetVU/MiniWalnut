@@ -40,7 +40,7 @@ to different states
 
 /-- Hopcroft's algorithm for DFA minimization.
 
-    ## Algorithm Overview
+    ### Algorithm Overview
 
     **Data structures:**
     - P: Partition of states (list of equivalence classes)
@@ -211,7 +211,7 @@ def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
     2. **Apply Hopcroft's algorithm**: Partition equivalent states
     3. **Build minimized DFA**:
        - States: Equivalence partitions
-       - Start state: Parition containing original initial state
+       - Start state: Partition containing original initial state
        - Accepting states: Partitions containing any original accepting state
        - Transitions: Runs the original transition function on the first state of the input partition
           and return the partition containing the obtained state

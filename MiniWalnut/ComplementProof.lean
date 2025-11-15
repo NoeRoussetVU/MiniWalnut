@@ -26,7 +26,7 @@ This file implements the proof for a simplified version of the complement operat
   a DFA is the complement of that language
 -/
 
--- Define DFA complement
+/-- Define DFA complement -/
 def DFA_complement {T : Type} {Q : Type}
     (M : DFA T Q) : DFA T Q :=
   {
@@ -42,7 +42,7 @@ variable {T : Type} {Q : Type}
 ## Example Complement
 -/
 
--- Accepts if a = b
+/-- Accepts if a = b -/
 def equals' : DFA (List B2) Nat := {
   step := fun x y => match x,y with
     | 0, [B2.zero, B2.zero] => 0

@@ -131,17 +131,10 @@ def get_accepting_states (states : Std.HashSet (Nat × Nat))
 
     2. **Accepting States**: Determined by `get_accepting_states` based on operation
 
-    3. **Alphabet Construction**:
-       - Find shared variables between M₁ and M₂
-       - Remove duplicate tracks from M₂'s alphabet
-       - Combine: each M₁ symbol concatenated with each modified M₂ symbol
-       - Example: If M₁ has [a,b] and M₂ has [b,c], and they share 'b':
-         * Remove 'b' track from M₂'s alphabet
-         * Combine M₁'s [a,b] tracks with M₂'s remaining [c] track
-         * Result: [a,b,c] tracks
-       - Remove any duplicates obtained in the resulting alphabet
+    3. **Variable List**: Union of both variable lists, sorted and deduplicated
 
-    4. **Variable List**: Union of both variable lists, sorted and deduplicated
+    4. **Alphabet Construction**: Gets all combinations of B2.one and B2.zero of length equals
+    to the number of variables
 
     5. **Transition Function**:
        - Create variable→symbol mapping from merged variable list
@@ -194,7 +187,7 @@ def change_states_names_cp
   let m1_states_list := M1.states.toList
   let m1_accept_list := M1.states_accept.toList
   let m1_alphabet_list := M1.alphabet.toList
-  let mappings := (assignNumbers m1_states_list m1_accept_list)
+  let mappings := (assign_numbers m1_states_list m1_accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst
 
@@ -230,10 +223,6 @@ def change_states_names_cp
   }
 
 /-- Cross product construction with Nat states (public interface).
-
-    This is the main function to use for cross product operations.
-    It wraps `crossproduct'` and converts the resulting (Nat × Nat) states
-    to simple Nat states for easier manipulation and comparison.
 
     ### Parameters
     - `M₁`: The first automaton part of the crossproduct

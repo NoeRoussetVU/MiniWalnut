@@ -218,39 +218,30 @@ def allBinaryCombinations_qt : Nat → List (List B2)
 def quant'
   (M : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char)
   (alphabet_vars : List (List B2)) : DFA_extended (List B2) (List Nat) :=
-
   let m1_states_list := M.states.toList
   let m1_accept_list := M.states_accept.toList
   let m1_alphabet_list := M.alphabet.toList
-
   -- Step 1: Find index of quantified variable and create new alphabet
   let idx := M.vars.findIdx (· = var)
   let new_alphabet := allBinaryCombinations_qt (M.vars.length - 1)
-
   -- Step 2: Create NFA transition function
   -- Given a state and input (without quantified variable), try all possible values
   -- for the quantified variable and collect all reachable states
   let step := fun st input =>
     (alphabet_vars.flatten.map (fun x =>
       input.insertIdx idx x)).map (fun y => M.automata.step st y)
-
   -- Step 3: Compute bound on possible number of states in powerset (2^n)
   let num_possible_states := 2^(m1_states_list.length)
-
   -- Step 4: Find all initial states (those reachable via 0*)
   let start_states := (reachableWithOneOrMoreZeros [M.automata.start] step zero (m1_states_list.length)).dedup.mergeSort
-
   -- Step 5: Determinize the NFA
   let new_transitions := determinizeMemo step new_alphabet start_states num_possible_states
-
   -- Step 6: Extract all states from transitions
   let new_states' := (new_transitions.map (fun ((x,_),_) => x))
      ++ (new_transitions.map (fun ((_,_),z) => z))
   let new_states := Std.HashSet.emptyWithCapacity.insertMany new_states'
-
   -- Step 7: Determine accepting states (any original accepting state in the set)
   let states_acc := new_states.filter (fun x => M.states_accept.any (fun y => x.contains y))
-
   -- Step 8: Build the resulting DFA
   let dfa_list : DFA (List B2) (List Nat) :={
     step := fun st input =>
@@ -274,8 +265,6 @@ def quant'
 
     - **∃x. M**: Accepts input if there exists a value for x making M accept
     - **∀x. M**: Accepts input if M accepts for all values of x
-
-    For ∃, simply run the `quant'`. For ∀, apply De Morgan's Law: De Morgan's law: ∀x.φ ≡ ¬∃x.¬φ
 
     ### Parameters
     - `M1`: DFA to quantify over
