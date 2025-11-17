@@ -76,36 +76,36 @@ to different states
     ### Returns
     List of equivalence classes (each class becomes one state in minimized DFA)
 -/
-def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq Input]
+def hopcroft_minimization {State Input : Type} [DecidableEq State] [DecidableEq Input]
     (Q : List State) (F : List State) (alphabet : List Input)
     (transition_function : State → Input → State) : List (List State) :=
 
-  let setDifference (Y X : List State) : List State :=
+  let set_difference (Y X : List State) : List State :=
   Y.filter (fun y => !X.contains y)
 
-  let setIntersection (X Y : List State) : List State :=
+  let set_intersection (X Y : List State) : List State :=
   X.filter (fun x => Y.contains x)
 
   -- Computes predecessors: states that can reach states from A with c
-  let getPredecessors (A : List State) (c : Input) : List State :=
+  let get_predecessors (A : List State) (c : Input) : List State :=
     Q.filter (fun q => A.contains (transition_function q c))
 
   -- Updates worklist when a set Y is split into two new sets
-  let updateWorklist (W : List (List State)) (oldY : List State)
-  (newSets : List State × List State) : List (List State) :=
-    let (intersection, difference) := newSets
-    if W.contains oldY then
+  let update_worklist (W : List (List State)) (old_Y : List State)
+  (new_sets : List State × List State) : List (List State) :=
+    let (intersection, difference) := new_sets
+    if W.contains old_Y then
       -- Y was in worklist: add both new sets
-      intersection :: difference :: W.filter (· ≠ oldY)
+      intersection :: difference :: W.filter (· ≠ old_Y)
     else
       -- Y was not in worklist: add only the smaller set (optimization)
       let smallerSet := if intersection.length ≤ difference.length then intersection else difference
       smallerSet :: W
 
   -- Initialize partition and worklist
-  let nonAccepting := setDifference Q F
-  let initialP := [F, nonAccepting].filter (fun x => !x.isEmpty)
-  let initialW := initialP
+  let non_accepting := set_difference Q F
+  let initial_P := [F, non_accepting].filter (fun x => !x.isEmpty)
+  let initial_W := initial_P
 
   -- Main refinement loop
   let rec loop (P : List (List State)) (W : List (List State)) (max_iterations : Nat)
@@ -114,32 +114,32 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
     else
       match W with
       | [] => P  -- Worklist empty: minimization is finished
-      | A :: restW =>
-        let (finalP, finalW) := alphabet.foldl (fun (currentP, currentW) c =>
-          let X := getPredecessors A c
+      | A :: rest_W =>
+        let (final_P, final_W) := alphabet.foldl (fun (current_P, current_W) c =>
+          let X := get_predecessors A c
 
           -- Find which sets in current partition need to be split
           -- A set Y needs splitting if some (but not all) states in Y reach A via c
-          let setsToSplit := currentP.filter (fun Y =>
-            let intersection := setIntersection X Y     -- States in Y that reach A via c
-            let difference := setDifference Y X         -- States in Y that don't reach A via c
+          let sets_to_split := current_P.filter (fun Y =>
+            let intersection := set_intersection X Y     -- States in Y that reach A via c
+            let difference := set_difference Y X         -- States in Y that don't reach A via c
             !intersection.isEmpty ∧ !difference.isEmpty -- Both parts non-empty means split needed
           )
 
           -- Apply all necessary splits
-          setsToSplit.foldl (fun (accP, accW) Y =>
-            let intersection := setIntersection X Y
-            let difference := setDifference Y X
-            let newP := intersection :: difference :: accP.filter (· ≠ Y)  -- Replace Y in P with split
-            let newW := updateWorklist accW Y (intersection, difference)   -- Update worklist
-            (newP, newW)
-          ) (currentP, currentW)
+          sets_to_split.foldl (fun (acc_P, acc_W) Y =>
+            let intersection := set_intersection X Y
+            let difference := set_difference Y X
+            let new_P := intersection :: difference :: acc_P.filter (· ≠ Y)  -- Replace Y in P with split
+            let new_W := update_worklist acc_W Y (intersection, difference)   -- Update worklist
+            (new_P, new_W)
+          ) (current_P, current_W)
 
-        ) (P, restW)
+        ) (P, rest_W)
 
-      loop finalP finalW (max_iterations-1)
+      loop final_P final_W (max_iterations-1)
 
-  loop initialP initialW Q.length
+  loop initial_P initial_W Q.length
 
 /-!
 ## Unreachable State Removal
@@ -147,7 +147,7 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
 
 /-- Removes unreachable states using breadth-first search.
 
-    ### Algorithm (BFS)
+    ### Algorithm
     1. Start with queue containing only the start state
     2. Mark start state as visited
     3. While queue is not empty:
@@ -166,7 +166,7 @@ def hopcroftMinimization {State Input : Type} [DecidableEq State] [DecidableEq I
     ### Returns
     List of states reachable from the start state
 -/
-def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
+def remove_unreachable_states {Q T : Type} [DecidableEq Q] [DecidableEq T]
     (states : List Q)
     (alphabet : List T)
     (delta : Q → T → Q)
@@ -178,25 +178,25 @@ def removeUnreachableStatesBFS {Q T : Type} [DecidableEq Q] [DecidableEq T]
     else
       match queue with
       | [] => visited  -- Queue empty: all reachable states found
-      | currentState :: restQueue =>
-        if currentState ∈ visited then
+      | current_state :: rest_queue =>
+        if current_state ∈ visited then
           -- Already processed this state, skip it
-          bfs restQueue visited (max-1)
+          bfs rest_queue visited (max-1)
         else
           -- New state: mark as visited and explore neighbors
-          let newVisited := currentState :: visited
+          let new_visited := current_state :: visited
           -- Find all states reachable in one step from currentState
           let neighbors := alphabet.foldl (fun acc symbol =>
-            acc ++ [delta currentState symbol]
+            acc ++ [delta current_state symbol]
           ) []
           -- Add unvisited neighbors to queue
-          let newQueue := restQueue ++ neighbors.filter (fun s => !(s ∈ newVisited))
-          bfs newQueue newVisited (max-1)
+          let new_queue := rest_queue ++ neighbors.filter (fun s => !(s ∈ new_visited))
+          bfs new_queue new_visited (max-1)
 
   -- Run BFS from start state with reasonable iteration bound
-  let reachableStates := bfs [startState] [] (states.length + (states.length * alphabet.length))
+  let reachable_states := bfs [startState] [] (states.length + (states.length * alphabet.length))
 
-  reachableStates
+  reachable_states
 
 
 /-!
@@ -226,10 +226,10 @@ def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
   let m1_alphabet_list := M.alphabet.toList
 
   -- Step 1: Remove unreachable states
-  let reachable_states := removeUnreachableStatesBFS m1_states_list m1_alphabet_list M.automata.step M.automata.start
+  let reachable_states := remove_unreachable_states m1_states_list m1_alphabet_list M.automata.step M.automata.start
 
   -- Step 2: Minimize using Hopcroft's algorithm (only on reachable states)
-  let new_states := hopcroftMinimization reachable_states (m1_accept_list ∩ reachable_states) m1_alphabet_list M.automata.step
+  let new_states := hopcroft_minimization reachable_states (m1_accept_list ∩ reachable_states) m1_alphabet_list M.automata.step
 
   -- Step 3: Determine accepting equivalence classes
   -- A class is accepting if it contains any original accepting state

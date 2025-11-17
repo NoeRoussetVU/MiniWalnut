@@ -51,25 +51,25 @@ In MSD (most significant digit first) representation, numbers can have leading z
 -/
 
 /-- Return all states reachable from `currentStates` using `symbol` and `f`-/
-def processSymbol {T Q : Type} [DecidableEq Q]
-(f : Q → T → List Q) (currentStates : List Q) (symbol : T) : List Q :=
-  let nextStates := currentStates.foldl (fun acc state =>
+def process_symbol {T Q : Type} [DecidableEq Q]
+(f : Q → T → List Q) (current_states : List Q) (symbol : T) : List Q :=
+  let next_states := current_states.foldl (fun acc state =>
     acc ++ f state symbol
   ) []
-  nextStates.dedup
+  next_states.dedup
 
 /-- Finds all states reachable from `start_states` within `n` zeros. -/
-def reachableWithNZeros {T Q : Type} [DecidableEq T] [DecidableEq Q]
+def reachable_with_n_zeros {T Q : Type} [DecidableEq T] [DecidableEq Q]
 (start_states : List Q) (f : Q → T → List Q) (n : Nat) (zero : T) : List Q :=
   if n = 0 then
     start_states
   else
-    let rec helper (currentStates : List Q) (remaining : Nat) : List Q :=
+    let rec helper (current_states : List Q) (remaining : Nat) : List Q :=
       if remaining = 0 then
-        currentStates
+        current_states
       else
-        let nextStates := processSymbol f currentStates zero
-        helper nextStates (remaining - 1)
+        let next_states := process_symbol f current_states zero
+        helper next_states (remaining - 1)
     helper start_states n
 
 /-- Finds all states reachable from the initial state with one or more consecutive zeros.
@@ -80,13 +80,13 @@ def reachableWithNZeros {T Q : Type} [DecidableEq T] [DecidableEq Q]
     - `zero`: The zero symbol
     - `max_zeros`: Maximum number of zeros to consider (typically = number of states)
 -/
-def reachableWithOneOrMoreZeros {T Q : Type} [DecidableEq T] [DecidableEq Q]
+def reachable_with_one_or_more_zeros {T Q : Type} [DecidableEq T] [DecidableEq Q]
 (start_states : List Q) (f : Q → T → List Q) (zero : T) (max_zeros : Nat) : List Q :=
-  let allReachableStates := (List.range max_zeros).foldl (fun acc n =>
+  let all_reachable_states := (List.range max_zeros).foldl (fun acc n =>
     if n = 0 then acc
-    else acc ++ reachableWithNZeros start_states f n zero
+    else acc ++ reachable_with_n_zeros start_states f n zero
   ) []
-  allReachableStates
+  all_reachable_states
 
 /-!
 ## NFA Determinization
@@ -101,7 +101,7 @@ We use powerset construction to convert it to a DFA, with memoization for effici
     - `visited`: Set of states already explored (avoids reprocessing)
     - `memo`: Cache of computed transitions for each state
 -/
-structure DeterminizeState (Input1 : Type) [BEq Input1] [Hashable Input1] where
+structure determinize_state (Input1 : Type) [BEq Input1] [Hashable Input1] where
   visited : Std.HashSet (List (Nat))
   memo : Std.HashMap (List (Nat)) (List (((List Nat) × Input1) × (List Nat)))
 
@@ -124,10 +124,10 @@ structure DeterminizeState (Input1 : Type) [BEq Input1] [Hashable Input1] where
     ### Returns
     Pair of (all transitions discovered, updated memoization state)
 -/
-def determinizeWithMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable Input1]
+def determinize_with_memo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable Input1]
   (transition_function : (Nat) → Input1 → (List Nat)) (alphabet : List Input1)
-  (current_state : List Nat) (num_possible_states : Nat) (state : DeterminizeState Input1)
-   : List (((List Nat) × Input1) × (List Nat)) × DeterminizeState Input1 :=
+  (current_state : List Nat) (num_possible_states : Nat) (state : determinize_state Input1)
+   : List (((List Nat) × Input1) × (List Nat)) × determinize_state Input1 :=
 
   -- Base case: reached recursion limit
   if num_possible_states = 0 then ([], state)
@@ -154,7 +154,7 @@ def determinizeWithMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hasha
       for next_state in reachable_states do
         if !new_state.visited.contains next_state then
           let (sub_transitions, updated_state) :=
-          determinizeWithMemo transition_function alphabet next_state (num_possible_states-1) new_state
+          determinize_with_memo transition_function alphabet next_state (num_possible_states-1) new_state
           all_transitions := all_transitions ++ sub_transitions
           new_state := updated_state
 
@@ -174,16 +174,16 @@ def determinizeWithMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hasha
     List of all transitions in the determinized DFA, where each transition
     is ((source_state_set, input_symbol), target_state_set)
 -/
-def determinizeMemo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable Input1]
+def determinize_memo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable Input1]
   (transition_function : Nat → Input1 → (List Nat)) (alphabet : List Input1)
   (initial_state : List Nat) (max_states : Nat) : List (((List Nat) × Input1) × (List Nat)) :=
   let initial_state_obj := ⟨Std.HashSet.emptyWithCapacity, Std.HashMap.emptyWithCapacity⟩
-  (determinizeWithMemo transition_function alphabet initial_state max_states initial_state_obj).fst
+  (determinize_with_memo transition_function alphabet initial_state max_states initial_state_obj).fst
 
-def allBinaryCombinations_qt : Nat → List (List B2)
+def all_binary_combinations_qt : Nat → List (List B2)
   | 0 => [[]]
   | n + 1 =>
-    let smaller := allBinaryCombinations_qt n
+    let smaller := all_binary_combinations_qt n
     smaller.flatMap (fun combo => [B2.zero :: combo, B2.one :: combo])
 
 /-!
@@ -223,7 +223,7 @@ def quant'
   let m1_alphabet_list := M.alphabet.toList
   -- Step 1: Find index of quantified variable and create new alphabet
   let idx := M.vars.findIdx (· = var)
-  let new_alphabet := allBinaryCombinations_qt (M.vars.length - 1)
+  let new_alphabet := all_binary_combinations_qt (M.vars.length - 1)
   -- Step 2: Create NFA transition function
   -- Given a state and input (without quantified variable), try all possible values
   -- for the quantified variable and collect all reachable states
@@ -233,9 +233,9 @@ def quant'
   -- Step 3: Compute bound on possible number of states in powerset (2^n)
   let num_possible_states := 2^(m1_states_list.length)
   -- Step 4: Find all initial states (those reachable via 0*)
-  let start_states := (reachableWithOneOrMoreZeros [M.automata.start] step zero (m1_states_list.length)).dedup.mergeSort
+  let start_states := (reachable_with_one_or_more_zeros [M.automata.start] step zero (m1_states_list.length)).dedup.mergeSort
   -- Step 5: Determinize the NFA
-  let new_transitions := determinizeMemo step new_alphabet start_states num_possible_states
+  let new_transitions := determinize_memo step new_alphabet start_states num_possible_states
   -- Step 6: Extract all states from transitions
   let new_states' := (new_transitions.map (fun ((x,_),_) => x))
      ++ (new_transitions.map (fun ((_,_),z) => z))

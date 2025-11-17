@@ -273,7 +273,7 @@ These functions create DFA_extended structures that wrap DFAs with all necessary
     - From state x > 0: If the input at index x of the accepted word is read, go to state x + 1,
       else go to the dead state. If x = word.length, any input goes to the dead state.
 -/
-def build_equals_digit_base {T : Type} [DecidableEq T]
+def build_equals_digit_DFA' {T : Type} [DecidableEq T]
 (word : List T) (zero : T) : DFA T Nat where
   step := fun state symbol =>
     -- If we're at position i and see the expected symbol, advance to i+1
@@ -297,7 +297,7 @@ def build_equals_digit_base {T : Type} [DecidableEq T]
 -/
 def build_equals_digit_DFA (word : List (List B2)) (zero : List B2) (vars : List Char)
  : DFA_extended (List B2) Nat where
-  automata := build_equals_digit_base word zero
+  automata := build_equals_digit_DFA' word zero
   states := Std.HashSet.emptyWithCapacity.insertMany (List.range (word.length + 2))
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [word.length]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]

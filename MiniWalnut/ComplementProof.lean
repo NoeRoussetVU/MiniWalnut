@@ -66,8 +66,7 @@ example :
     let input := [[B2.one, B2.one]]
     not_equals.eval input ∉ not_equals.accept := by
   change (DFA_complement equals).eval [[B2.one, B2.one]] ∉ (DFA_complement equals).accept
-  simp only [DFA_complement]
-  simp [equals]
+  simp [DFA_complement, equals]
 
 -- [0, 1] is rejected by equals
 example :
@@ -80,8 +79,8 @@ example :
     let input := [[B2.one, B2.zero]]
     not_equals.eval input ∈ not_equals.accept := by
   change (DFA_complement equals).eval [[B2.one, B2.zero]] ∈ (DFA_complement equals).accept
-  simp only [DFA_complement]
-  simp [equals]
+  simp [DFA_complement, equals]
+
 
 
 /-- The complement DFA accepts exactly those words that M rejects -/

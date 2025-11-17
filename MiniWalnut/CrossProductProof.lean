@@ -151,6 +151,11 @@ theorem eval_singleton (x : T1) (y : T2)
   rfl
 
 @[simp]
+theorem eval_singleton_accept (x : T1) (y : T2)
+     : ((M1.crossProduct M2).eval [(x,y)]) ∈ (M1.crossProduct M2).accept ↔ (M1.eval [x], M2.eval [y]) ∈ (M1.crossProduct M2).accept := by
+  simp [DFA.crossProduct]
+
+@[simp]
 theorem eval_append_singleton
      (a : T1 × T2) (x : List (T1 × T2)) :
   (M1.crossProduct M2).eval (x ++ [a]) = (M1.crossProduct M2).step ((M1.crossProduct M2).eval x) a :=
