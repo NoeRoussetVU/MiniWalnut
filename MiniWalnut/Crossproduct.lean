@@ -149,7 +149,7 @@ def crossproduct'
   -- Step 2: Determine accepting states based on the operation
   let states_accept := get_accepting_states states M₁.states_accept operator M₂.states_accept
   -- Step 3: Merge and sort variable lists
-  let vars := (M₁.vars ++ M₂.vars).dedup.mergeSort
+  let vars := (M₁.vars ++ M₂.vars).dedup
   -- Step 4: Construct the combined alphabet
   let alphabet := Std.HashSet.emptyWithCapacity.insertMany (alphabet_construction vars.length)
   -- Step 5: Dead state exists only if both have dead states

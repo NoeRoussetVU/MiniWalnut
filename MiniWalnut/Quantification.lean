@@ -51,42 +51,36 @@ In MSD (most significant digit first) representation, numbers can have leading z
 -/
 
 /-- Return all states reachable from `currentStates` using `symbol` and `f`-/
-def process_symbol {T Q : Type} [DecidableEq Q]
-(f : Q → T → List Q) (current_states : List Q) (symbol : T) : List Q :=
+def process_symbol {Input : Type}
+(f : Nat → Input → List Nat) (current_states : List Nat) (symbol : Input) (visited : List Nat) : List Nat :=
   let next_states := current_states.foldl (fun acc state =>
     acc ++ f state symbol
   ) []
-  next_states.dedup
-
-/-- Finds all states reachable from `start_states` within `n` zeros. -/
-def reachable_with_n_zeros {T Q : Type} [DecidableEq T] [DecidableEq Q]
-(start_states : List Q) (f : Q → T → List Q) (n : Nat) (zero : T) : List Q :=
-  if n = 0 then
-    start_states
-  else
-    let rec helper (current_states : List Q) (remaining : Nat) : List Q :=
-      if remaining = 0 then
-        current_states
-      else
-        let next_states := process_symbol f current_states zero
-        helper next_states (remaining - 1)
-    helper start_states n
+  (next_states.filter (fun x => !visited.contains x)).dedup
 
 /-- Finds all states reachable from the initial state with one or more consecutive zeros.
 
     ### Parameters
-    - `start_states`: Initial state
-    - `f`: Transition function
+    - `transition_function`: Transition function returning a list of all reachable states for a
+      state and a symbol
     - `zero`: The zero symbol
-    - `max_zeros`: Maximum number of zeros to consider (typically = number of states)
+    - `current_states`: List of current initial states to visit
+    - `num_possible_states`: Maximum number of possible initial states
+    - `states`: Already visited states
 -/
-def reachable_with_one_or_more_zeros {T Q : Type} [DecidableEq T] [DecidableEq Q]
-(start_states : List Q) (f : Q → T → List Q) (zero : T) (max_zeros : Nat) : List Q :=
-  let all_reachable_states := (List.range max_zeros).foldl (fun acc n =>
-    if n = 0 then acc
-    else acc ++ reachable_with_n_zeros start_states f n zero
-  ) []
-  all_reachable_states
+def find_initial_states {Input : Type} [DecidableEq Input] [BEq Input] [Hashable Input]
+  (transition_function : (Nat) → Input → (List Nat)) (zero : Input)
+  (current_states : List Nat) (num_possible_states : Nat) (states : List Nat)
+   : List Nat :=
+  -- Base case: reached recursion limit
+  if num_possible_states = 0 then states
+  else
+    -- Mark current states as visited
+    let visited_states := states ++ current_states
+    -- Find all newly reachable state sets
+    let reachable_states := process_symbol transition_function current_states zero visited_states
+    -- Recursion on newly found states
+    find_initial_states transition_function zero reachable_states (num_possible_states-1) visited_states
 
 /-!
 ## NFA Determinization
@@ -219,8 +213,6 @@ def quant'
   (M : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char)
   (alphabet_vars : List (List B2)) : DFA_extended (List B2) (List Nat) :=
   let m1_states_list := M.states.toList
-  let m1_accept_list := M.states_accept.toList
-  let m1_alphabet_list := M.alphabet.toList
   -- Step 1: Find index of quantified variable and create new alphabet
   let idx := M.vars.findIdx (· = var)
   let new_alphabet := all_binary_combinations_qt (M.vars.length - 1)
@@ -233,7 +225,7 @@ def quant'
   -- Step 3: Compute bound on possible number of states in powerset (2^n)
   let num_possible_states := 2^(m1_states_list.length)
   -- Step 4: Find all initial states (those reachable via 0*)
-  let start_states := (reachable_with_one_or_more_zeros [M.automata.start] step zero (m1_states_list.length)).dedup.mergeSort
+  let start_states := find_initial_states step zero [M.automata.start] (m1_states_list.length) []
   -- Step 5: Determinize the NFA
   let new_transitions := determinize_memo step new_alphabet start_states num_possible_states
   -- Step 6: Extract all states from transitions

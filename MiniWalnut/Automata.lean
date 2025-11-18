@@ -302,7 +302,7 @@ def build_equals_digit_DFA (word : List (List B2)) (zero : List B2) (vars : List
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [word.length]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some (word.length + 1)
-  vars := if vars.length == 1 then vars.mergeSort else panic! "Must have 1 variable"
+  vars := if vars.length == 1 then vars else panic! "Must have 1 variable"
 
 /-- Creates a complete extended DFA for variable equality.
 
@@ -316,7 +316,7 @@ def build_equals_DFA (vars : List Char)
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one]]
   dead_state := some 1
-  vars := if vars.length == 2 then vars.mergeSort else panic! "Must have 2 variables"
+  vars := if vars.length == 2 then vars else panic! "Must have 2 variables"
 
 
 /-- Creates a complete extended DFA for addition with all metadata.
@@ -337,7 +337,7 @@ def build_addition_DFA (vars : List Char) : DFA_extended (List B2) Nat where
   [B2.zero, B2.zero, B2.one],
   [B2.zero, B2.one, B2.one]]
   dead_state := some 2
-  vars := if vars.length == 3 then vars.mergeSort else panic! "Must have 3 variables"
+  vars := if vars.length == 3 then vars else panic! "Must have 3 variables"
 
 /-- Creates a complete extended DFA for less-than comparison.
 
@@ -351,12 +351,12 @@ def build_less_than_DFA (vars : List Char) : DFA_extended (List B2) Nat where
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
   [B2.one, B2.zero]]
   dead_state := some 2
-  vars := if vars.length == 2 then vars.mergeSort else panic! "Must have 2 variables"
+  vars := if vars.length == 2 then vars else panic! "Must have 2 variables"
 
 /-- Creates a complete extended DFA for Thue-Morse sequence equality.
 
     ### Parameters
-    - `values`: List of Thue-Morse values to accept (typically [0] or [1])
+    - `values`: List of Thue-Morse values to accept (0 or 1)
     - `vars`: The name of the input track
 -/
 def build_TH_equals_digit_DFA (values : List Nat) (vars : List Char)
@@ -366,7 +366,7 @@ def build_TH_equals_digit_DFA (values : List Nat) (vars : List Char)
   states_accept := Std.HashSet.emptyWithCapacity.insertMany values
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some 2
-  vars := if vars.length == 2 then vars.mergeSort else panic! "Must have 2 variables"
+  vars := if vars.length == 1 then vars else panic! "Must have 1 variables"
 
 /-!
 ## Automata Operations
