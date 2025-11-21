@@ -63,15 +63,30 @@ def accepts_1_2 : DFA (B2 × B2) Nat := {
 def accepts_1_2_quant : NFA B2 Nat := DFA_quant accepts_1_2
 
 -- For input B2.zero from state 0, can reach state 1
-example : 1 ∈ accepts_1_2_quant.step 0 B2.zero := by
+example : 1 ∈  accepts_1_2_quant.step 0 B2.zero := by
   simp [accepts_1_2_quant, DFA_quant, accepts_1_2]
   use B2.one
+
+example : {0, 1} ⊆ accepts_1_2_quant.step 0 B2.zero := by
+  intro x hx
+  simp at hx
+  obtain (rfl | rfl) := hx
+  · simp [accepts_1_2_quant, DFA_quant, accepts_1_2]
+    use B2.zero
+  · simp [accepts_1_2_quant, DFA_quant, accepts_1_2]
+    use B2.one
 
 -- For input B2.one from state 1, can reach state 2
 example : 2 ∈ accepts_1_2_quant.step 1 B2.one := by
   simp [accepts_1_2_quant, DFA_quant, accepts_1_2]
   use B2.zero
 
+example : {2} ⊆ accepts_1_2_quant.step 1 B2.one := by
+  intro x hx
+  simp at hx
+  obtain (rfl | rfl) := hx
+  · simp [accepts_1_2_quant, DFA_quant, accepts_1_2]
+    use B2.zero
 /-!
 ## Key Lemma: Single Step Correspondence
 

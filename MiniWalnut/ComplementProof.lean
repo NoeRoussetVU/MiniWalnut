@@ -82,9 +82,7 @@ example :
   simp [DFA_complement, equals]
 
 
-
 /-- The complement DFA accepts exactly those words that M rejects -/
-@[simp]
 theorem dfa_complement_language
     (w : List T) :
     w ∈ (DFA_complement M).accepts ↔ w ∉ M.accepts := by

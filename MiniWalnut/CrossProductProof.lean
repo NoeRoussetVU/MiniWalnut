@@ -88,74 +88,61 @@ example :
 variable {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2}
 (M1 : DFA T1 Q1) (M2 : DFA T2 Q2)
 
-@[simp]
 theorem crossProduct_evalFrom_nil
     (s1 : Q1) (s2 : Q2)
     : (M1.crossProduct M2).evalFrom (s1, s2) [] = (s1, s2) :=
   rfl
 
-@[simp]
 theorem crossProduct_evalFrom_singleton
     (s1 : Q1) (s2 : Q2) (x : T1) (y : T2)
     :  (M1.crossProduct M2).evalFrom (s1, s2) [(x,y)] = (M1.crossProduct M2).step (s1, s2) (x,y) :=
   rfl
 
-@[simp]
 theorem crossProduct_evalFrom_append_singleton
     (s1 : Q1 × Q2) (a : T1 × T2) (x : List (T1 × T2)) :
     (M1.crossProduct M2).evalFrom s1 (x ++ [a]) = (M1.crossProduct M2).step ((M1.crossProduct M2).evalFrom s1 x) a := by
   simp only [DFA.evalFrom, List.foldl_append, List.foldl_cons, List.foldl_nil]
 
-@[simp]
 theorem crossProduct_evalFrom_nil_split
     (s1 : Q1) (s2 : Q2) :
     (M1.crossProduct M2).evalFrom (s1, s2) [] = (M1.evalFrom s1 [], M2.evalFrom s2 []) :=
   rfl
 
-@[simp]
 theorem crossProduct_evalFrom_single_split
     (s1 : Q1) (s2 : Q2) (x : T1) (y : T2):
     (M1.crossProduct M2).evalFrom (s1, s2) [(x,y)] = (M1.evalFrom s1 [x], M2.evalFrom s2 [y]) :=
   rfl
 
-@[simp]
 lemma crossProduct_step_single_split
     (s1 : Q1) (s2 : Q2) (x : T1) (y : T2) :
     (M1.crossProduct M2).step (s1, s2) (x, y) = (M1.step s1 x, M2.step s2 y) := by
     rfl
 
-@[simp]
 theorem crossProduct_eval_nil_split : (M1.crossProduct M2).eval [] = (M1.eval [], M2.eval []) :=
   rfl
 
-@[simp]
 theorem crossProduct_eval_single_split
     (x : T1) (y : T2):
     (M1.crossProduct M2).eval [(x,y)] = (M1.eval [x], M2.eval [y]) :=
   rfl
 
-@[simp]
 theorem crossProduct_eval_single_split_hyper
     (x : T1 × T2) :
     (M1.crossProduct M2).eval [x] = (M1.eval [x.fst], M2.eval [x.snd]) :=
   rfl
 
-@[simp]
 theorem eval_nil
   : (M1.crossProduct M2).eval [] = (M1.crossProduct M2).start :=
   rfl
 
-@[simp]
 theorem eval_singleton (x : T1) (y : T2)
      : (M1.crossProduct M2).eval [(x,y)] = (M1.crossProduct M2).step (M1.crossProduct M2).start (x,y) :=
   rfl
 
-@[simp]
 theorem eval_singleton_accept (x : T1) (y : T2)
      : ((M1.crossProduct M2).eval [(x,y)]) ∈ (M1.crossProduct M2).accept ↔ (M1.eval [x], M2.eval [y]) ∈ (M1.crossProduct M2).accept := by
   simp [DFA.crossProduct]
 
-@[simp]
 theorem eval_append_singleton
      (a : T1 × T2) (x : List (T1 × T2)) :
   (M1.crossProduct M2).eval (x ++ [a]) = (M1.crossProduct M2).step ((M1.crossProduct M2).eval x) a :=
