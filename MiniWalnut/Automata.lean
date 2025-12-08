@@ -295,28 +295,28 @@ def build_equals_digit_DFA' {T : Type} [DecidableEq T]
     - `zero`: The "zero" symbol for padding
     - `vars`: The name of the input track
 -/
-def build_equals_digit_DFA (word : List (List B2)) (zero : List B2) (vars : List Char)
+def build_equals_digit_DFA (word : List (List B2)) (zero : List B2) (var : Char)
  : DFA_extended (List B2) Nat where
   automata := build_equals_digit_DFA' word zero
   states := Std.HashSet.emptyWithCapacity.insertMany (List.range (word.length + 2))
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [word.length]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some (word.length + 1)
-  vars := if vars.length == 1 then vars else panic! "Must have 1 variable"
+  vars := [var]
 
 /-- Creates a complete extended DFA for variable equality.
 
     ### Parameters
     - `vars`: The name of the input track
 -/
-def build_equals_DFA (vars : List Char)
+def build_equals_DFA (var_1 : Char) (var_2 : Char)
  : DFA_extended (List B2) Nat where
   automata := equals
   states := Std.HashSet.emptyWithCapacity.insertMany [0,1]
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one]]
   dead_state := some 1
-  vars := if vars.length == 2 then vars else panic! "Must have 2 variables"
+  vars := [var_1, var_2]
 
 
 /-- Creates a complete extended DFA for addition with all metadata.
@@ -324,7 +324,7 @@ def build_equals_DFA (vars : List Char)
     ### Parameters
     - `vars`: The name of the input tracks
 -/
-def build_addition_DFA (vars : List Char) : DFA_extended (List B2) Nat where
+def build_addition_DFA (var_1 : Char) (var_2 : Char) (var_3 : Char) : DFA_extended (List B2) Nat where
   automata := addition
   states :=  Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
@@ -337,21 +337,21 @@ def build_addition_DFA (vars : List Char) : DFA_extended (List B2) Nat where
   [B2.zero, B2.zero, B2.one],
   [B2.zero, B2.one, B2.one]]
   dead_state := some 2
-  vars := if vars.length == 3 then vars else panic! "Must have 3 variables"
+  vars := [var_1, var_2, var_3]
 
 /-- Creates a complete extended DFA for less-than comparison.
 
     ### Parameters
     - `vars`: The name of the input track
 -/
-def build_less_than_DFA (vars : List Char) : DFA_extended (List B2) Nat where
+def build_less_than_DFA (var_1 : Char) (var_2 : Char) : DFA_extended (List B2) Nat where
   automata := less_than
   states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
   states_accept := Std.HashSet.emptyWithCapacity.insertMany [1]
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero], [B2.one, B2.one], [B2.zero, B2.one],
   [B2.one, B2.zero]]
   dead_state := some 2
-  vars := if vars.length == 2 then vars else panic! "Must have 2 variables"
+  vars := [var_1, var_2]
 
 /-- Creates a complete extended DFA for Thue-Morse sequence equality.
 
@@ -359,14 +359,14 @@ def build_less_than_DFA (vars : List Char) : DFA_extended (List B2) Nat where
     - `values`: List of Thue-Morse values to accept (0 or 1)
     - `vars`: The name of the input track
 -/
-def build_TH_equals_digit_DFA (values : List Nat) (vars : List Char)
+def build_TH_equals_digit_DFA (values : List Nat) (var : Char)
  : DFA_extended (List B2) Nat where
   automata := thue_morse
   states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
-  states_accept := Std.HashSet.emptyWithCapacity.insertMany values
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany ([0,1,2].filter (fun x => values.contains x) )
   alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero], [B2.one]]
   dead_state := some 2
-  vars := if vars.length == 1 then vars else panic! "Must have 1 variables"
+  vars := [var]
 
 /-!
 ## Automata Operations
