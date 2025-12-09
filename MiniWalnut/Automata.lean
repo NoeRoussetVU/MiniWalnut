@@ -117,14 +117,14 @@ def addition : DFA (List B2) Nat := {
 -- 5 = 3 + 2 is accepted
 example :
     let input := [[B2.one, B2.zero, B2.zero], [B2.zero, B2.one, B2.one], [B2.one, B2.one, B2.zero]]
-    addition.eval input = 0 := by
+    input ∈ addition.accepts := by
   rfl
 
 -- 3 ≠ 1 + 1 is rejected
 example :
     let input := [[B2.one,B2.zero,B2.zero],[B2.one,B2.one,B2.one]]
-    addition.eval input ≠ 0 := by
-  simp [addition, DFA.eval, DFA.evalFrom]
+    input ∉ addition.accepts := by
+  simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, addition]
 
 /-- Automaton for equality: accepts (a, b) where a = b.
 
@@ -148,26 +148,26 @@ def equals : DFA (List B2) Nat := {
 -- 3 = 3 is accepted
 example :
     let input := [[B2.one, B2.one], [B2.one, B2.one]]
-    equals.eval input ∈ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom]
+    input ∈ equals.accepts := by
+  rfl
 
 -- 2 = 2 is accepted
 example :
     let input := [[B2.one, B2.one], [B2.zero, B2.zero]]
-    equals.eval input ∈ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom]
+    input ∈ equals.accepts := by
+  rfl
 
 -- 3 ≠ 2 is rejected
 example :
     let input := [[B2.one, B2.one], [B2.one, B2.zero]]
-    equals.eval input ∉ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom]
+    input ∉ equals.accepts := by
+  simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, equals]
 
 -- 1 ≠ 0 is rejected
 example :
     let input := [[B2.one, B2.zero]]
-    equals.eval input ∉ equals.accept := by
-  simp [equals, DFA.eval, DFA.evalFrom]
+    input ∉ equals.accepts := by
+  simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, equals]
 
 /-- Automaton for less-than comparison: accepts (a, b) where a < b.
 
@@ -199,26 +199,26 @@ def less_than : DFA (List B2) Nat := {
 -- 1 < 3 is accepted
 example :
     let input := [[B2.zero, B2.one], [B2.one, B2.one]]
-    less_than.eval input ∈ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom]
+    input ∈ less_than.accepts := by
+  rfl
 
 -- 0 < 1 is accepted
 example :
     let input := [[B2.zero, B2.one]]
-    less_than.eval input ∈ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom]
+    input ∈ less_than.accepts := by
+  rfl
 
 -- 3 ≮ 2 is rejected (3 > 2)
 example :
     let input := [[B2.one, B2.one], [B2.one, B2.zero]]
-    less_than.eval input ∉ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom]
+    input ∉ less_than.accepts := by
+  simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, less_than]
 
 -- 2 ≮ 2 is rejected (equal)
 example :
     let input := [[B2.one, B2.one], [B2.zero, B2.zero]]
-    less_than.eval input ∉ less_than.accept := by
-  simp [less_than, DFA.eval, DFA.evalFrom]
+    input ∉ less_than.accepts := by
+  simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, less_than]
 
 /-!
 ## Thue-Morse Sequence DFAO

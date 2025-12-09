@@ -69,14 +69,14 @@ def accepts_1_2 : DFA (B2 × B2) (Nat × Nat) :=
 -- Accepts ((0,1),(1,0))
 example :
     let input := [(B2.zero, B2.one), (B2.one, B2.zero)]
-    accepts_1_2.eval input ∈ accepts_1_2.accept := by
-  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom, accepts_1, accepts_2]
+    input ∈ accepts_1_2.accepts := by
+  simp [DFA.mem_accepts, accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom, accepts_1, accepts_2]
 
 -- Does not accept invalid input ((1,1),(0,0))
 example :
     let input := [(B2.one, B2.one),(B2.zero, B2.zero)]
-    accepts_1_2.eval input ∉ accepts_1_2.accept := by
-  simp [accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom, accepts_1, accepts_2]
+    input ∉ accepts_1_2.accepts := by
+  simp [DFA.mem_accepts, accepts_1_2, DFA.crossProduct, DFA.eval, DFA.evalFrom, accepts_1, accepts_2]
 
 -- Same accepting state as (accepts_1, accepts_2)
 example :

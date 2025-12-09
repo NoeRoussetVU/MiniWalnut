@@ -58,28 +58,28 @@ def not_equals : DFA (List B2) Nat := DFA_complement equals'
 -- [0, 0] accepted by equals
 example :
     let input := [[B2.one, B2.one]]
-    equals'.eval input ∈ equals'.accept := by
-  simp [equals']
+    input ∈ equals'.accepts := by
+  rfl
 
 -- [0, 0] is rejected by not_equals
 example :
     let input := [[B2.one, B2.one]]
-    not_equals.eval input ∉ not_equals.accept := by
-  change (DFA_complement equals).eval [[B2.one, B2.one]] ∉ (DFA_complement equals).accept
-  simp [DFA_complement, equals]
+    input ∉ not_equals.accepts := by
+  change (DFA_complement equals').eval [[B2.one, B2.one]] ∉ (DFA_complement equals').accept
+  simp [DFA_complement, equals']
 
 -- [0, 1] is rejected by equals
 example :
     let input := [[B2.zero, B2.one]]
-    equals'.eval input ∉ equals'.accept := by
-  simp [equals']
+    input ∉ equals'.accepts := by
+  simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, equals']
 
 -- [0, 1] is accepted by not_equals
 example :
     let input := [[B2.one, B2.zero]]
-    not_equals.eval input ∈ not_equals.accept := by
-  change (DFA_complement equals).eval [[B2.one, B2.zero]] ∈ (DFA_complement equals).accept
-  simp [DFA_complement, equals]
+    input ∈ not_equals.accepts := by
+  change (DFA_complement equals').eval [[B2.one, B2.zero]] ∈ (DFA_complement equals').accept
+  simp [DFA_complement, equals']
 
 
 /-- The complement DFA accepts exactly those words that M rejects -/
