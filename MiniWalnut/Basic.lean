@@ -1,10 +1,74 @@
-import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
 
 import MiniWalnut.Automata
 import MiniWalnut.Crossproduct
 import MiniWalnut.Quantification
 import MiniWalnut.Minimization
+
+-- eval tmsquarelengths "Ej Ai (i<n) => T[j+i] = T[j+n+i]":
+def tmsquarelengths : DFA_extended (List B2) Nat :=
+  let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
+  let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
+  let t_a_equals_t_b := minimization (crossproduct thue_morse_a (binary_ops.comparison_op c_ops.equals) thue_morse_b)
+
+  let a_equals_j_p_i : DFA_extended (List B2)  Nat := build_addition_DFA 'a' 'j' 'i'
+  let b_equals_j_p_c : DFA_extended (List B2)  Nat := build_addition_DFA 'b' 'j' 'c'
+  let c_equals_n_p_i : DFA_extended (List B2)  Nat := build_addition_DFA 'c' 'n' 'i'
+
+  let Ta_equals_Tb_and_a_ji := (crossproduct t_a_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_j_p_i)
+  let Ea_Ta_equals_Tb_and_a_ji := quant Ta_equals_Tb_and_a_ji 'a' quant_op.exists
+
+  let Ta_equals_Tb_and_a_ji_and_b_jc := minimization (crossproduct Ea_Ta_equals_Tb_and_a_ji (binary_ops.logical_op l_ops.and) b_equals_j_p_c)
+  let Eab_Ta_equals_Tb_and_a_ji_and_b_jc := quant Ta_equals_Tb_and_a_ji_and_b_jc 'b' quant_op.exists
+  let Ta_equals_Tb_and_a_ik_and_b_ink := minimization (crossproduct Eab_Ta_equals_Tb_and_a_ji_and_b_jc (binary_ops.logical_op l_ops.and) c_equals_n_p_i)
+  let Eabc_Ta_equals_Tb_and_a_ik_and_b_ink := minimization (quant Ta_equals_Tb_and_a_ik_and_b_ink 'c' quant_op.exists)
+
+  let i_lt_n := build_less_than_DFA 'i' 'n'
+  let i_lt_n_impl_Tik_equals_Tink := minimization (crossproduct i_lt_n (binary_ops.logical_op l_ops.impl) Eabc_Ta_equals_Tb_and_a_ik_and_b_ink)
+  let Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant i_lt_n_impl_Tik_equals_Tink 'i' quant_op.for_all)
+  let Ej_Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant Ai_i_lt_n_and_Tik_equals_Tink 'j' quant_op.exists)
+  Ej_Ai_i_lt_n_and_Tik_equals_Tink
+
+
+#time #eval tmsquarelengths.states
+#time #eval tmsquarelengths.states_accept
+
+-- eval paltm "Ei Aj (j<n) => T[i+j] = T[(i+n)-(j+1)]":
+def paltm : DFA_extended (List B2) Nat :=
+  let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
+  let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
+  let t_a_equals_t_b := (minimization (crossproduct thue_morse_a (binary_ops.comparison_op c_ops.equals) thue_morse_b))
+
+  let a_equals_i_p_j : DFA_extended (List B2)  Nat := build_addition_DFA 'a' 'i' 'j'
+
+  let b_equals_c_m_d : DFA_extended (List B2)  Nat := build_subtraction_DFA 'b' 'c' 'd'
+  let c_equals_i_p_n : DFA_extended (List B2)  Nat := build_addition_DFA 'c' 'i' 'n'
+  let d_equals_j_p_e : DFA_extended (List B2)  Nat := build_addition_DFA 'd' 'j' 'e'
+  let e_equals_1 := build_equals_digit_DFA [[B2.one]] [B2.zero] 'e'
+
+  let d_equals_jpe_eq_1 := minimization (crossproduct d_equals_j_p_e (binary_ops.logical_op l_ops.and) e_equals_1)
+  let d_equals_jp1 := minimization (quant d_equals_jpe_eq_1 'e' quant_op.exists)
+
+  let b_equals_c_m_d_and_c_ipn := minimization (crossproduct b_equals_c_m_d (binary_ops.logical_op l_ops.and) c_equals_i_p_n)
+  let b_equals_ipn_m_d := minimization (quant b_equals_c_m_d_and_c_ipn 'c' quant_op.exists)
+
+  let b_equals_ipn_m_d_and_d_jp1 := minimization (crossproduct b_equals_ipn_m_d (binary_ops.logical_op l_ops.and) d_equals_jp1)
+  let in_minus_j1 := minimization (quant b_equals_ipn_m_d_and_d_jp1 'd' quant_op.exists)
+
+  let Ta_equals_Tb_and_a_ij := minimization (crossproduct t_a_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_i_p_j)
+  let Ea_Ta_equals_Tb_and_a_ij := minimization (quant Ta_equals_Tb_and_a_ij 'a' quant_op.exists)
+
+  let Tij_equals_Tb_and_b_in_minus_j1 := minimization (crossproduct Ea_Ta_equals_Tb_and_a_ij (binary_ops.logical_op l_ops.and) in_minus_j1)
+  let Eb_Tij_equals_Tb_and_b_in_minus_j1 := minimization (quant Tij_equals_Tb_and_b_in_minus_j1 'b' quant_op.exists)
+
+  let j_lt_n := build_less_than_DFA 'j' 'n'
+  let j_lt_n_impl_Tij_equals_Tin_m_j1 := minimization (crossproduct j_lt_n (binary_ops.logical_op l_ops.impl) Eb_Tij_equals_Tb_and_b_in_minus_j1)
+  let Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant j_lt_n_impl_Tij_equals_Tin_m_j1 'j' quant_op.for_all)
+  let Ej_Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant Ai_i_lt_n_and_Tik_equals_Tink 'i' quant_op.exists)
+  Ej_Ai_i_lt_n_and_Tik_equals_Tink
+
+
+#time #eval paltm.states
 
 def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
   let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
@@ -16,43 +80,31 @@ def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
   let c_equals_n_p_k : DFA_extended (List B2)  Nat := build_addition_DFA 'c' 'n' 'k'
 
   let t_a_equals_t_b_and_a_equals_ik := (crossproduct t_a_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_i_p_k)
-  let Ea_t_a_equals_t_b_and_a_equals_ik := quant t_a_equals_t_b_and_a_equals_ik [B2.zero, B2.zero, B2.zero] 'a' quant_op.exists [[B2.zero], [B2.one]]
+  let Ea_t_a_equals_t_b_and_a_equals_ik := quant t_a_equals_t_b_and_a_equals_ik 'a' quant_op.exists
 
   let t_a_equals_t_b_and_a_ik_and_b_ic := minimization (crossproduct Ea_t_a_equals_t_b_and_a_equals_ik (binary_ops.logical_op l_ops.and) b_equals_i_p_c)
-  let Eab_t_a_equals_t_b_and_a_ik_and_b_ic := quant t_a_equals_t_b_and_a_ik_and_b_ic [B2.zero, B2.zero, B2.zero] 'b' quant_op.exists [[B2.zero], [B2.one]]
+  let Eab_t_a_equals_t_b_and_a_ik_and_b_ic := quant t_a_equals_t_b_and_a_ik_and_b_ic 'b' quant_op.exists
   let t_a_equals_t_b_and_a_ik_and_b_ink := minimization (crossproduct Eab_t_a_equals_t_b_and_a_ik_and_b_ic (binary_ops.logical_op l_ops.and) c_equals_n_p_k)
-  let Eabc_t_a_equals_t_b_and_a_ik_and_b_ink := minimization (quant t_a_equals_t_b_and_a_ik_and_b_ink [B2.zero,B2.zero,B2.zero] 'c' quant_op.exists [[B2.zero], [B2.one]])
+  let Eabc_t_a_equals_t_b_and_a_ik_and_b_ink := minimization (quant t_a_equals_t_b_and_a_ik_and_b_ink 'c' quant_op.exists)
 
   let k_lt_n := build_less_than_DFA 'k' 'n'
   let k_lt_n_imp_th_ik_equals_th_ink := minimization (crossproduct k_lt_n (binary_ops.logical_op l_ops.impl) Eabc_t_a_equals_t_b_and_a_ik_and_b_ink)
-  let Ak_k_lt_n_impl_t_ik_equals_t_ink :=  minimization (quant k_lt_n_imp_th_ik_equals_th_ink [B2.zero, B2.zero] 'k' quant_op.for_all [[B2.zero], [B2.one]])
+  let Ak_k_lt_n_impl_t_ik_equals_t_ink :=  minimization (quant k_lt_n_imp_th_ik_equals_th_ink 'k' quant_op.for_all)
 
   let n_lt_a := build_less_than_DFA 'n' 'a'
   let n_eq_a := build_equals_DFA 'n' 'a'
   let n_lteq_a := minimization (crossproduct n_lt_a (binary_ops.logical_op l_ops.or) n_eq_a)
   let a_0 := build_equals_digit_DFA [] [B2.zero] 'a'
   let n_lteq_0 := minimization (crossproduct n_lteq_a (binary_ops.logical_op l_ops.and) a_0)
-  let n_gt_0' :=  quant (n_lteq_0) [B2.zero] 'a' quant_op.exists [[B2.zero], [B2.one]]
+  let n_gt_0' :=  quant (n_lteq_0) 'a' quant_op.exists
   let n_gt_0 :=  complement n_gt_0'
 
   let squares_in_th_word :=  minimization (crossproduct n_gt_0 (binary_ops.logical_op l_ops.and) Ak_k_lt_n_impl_t_ik_equals_t_ink)
-  minimization (quant squares_in_th_word [B2.zero] 'i' quant_op.exists [[B2.zero], [B2.one]])
+  minimization (quant squares_in_th_word 'i' quant_op.exists)
 
-#eval order_of_squares_in_th_word.states
-#eval order_of_squares_in_th_word.states_accept
-
-#eval order_of_squares_in_th_word.automata.eval []
-#eval order_of_squares_in_th_word.automata.eval [[B2.zero]]
-
-#eval order_of_squares_in_th_word.automata.eval [[B2.one]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one]]
-
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.one]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.one], [B2.zero]]
-#eval order_of_squares_in_th_word.automata.eval [[B2.one], [B2.one], [B2.one], [B2.one]]
-
+#time #eval order_of_squares_in_th_word.states
+#time #eval order_of_squares_in_th_word.states_accept
+#time #eval order_of_squares_in_th_word.automata.start
 
 def thue_morse_does_not_have_overlaps : DFA_extended (List B2) Nat :=
   let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
@@ -64,32 +116,87 @@ def thue_morse_does_not_have_overlaps : DFA_extended (List B2) Nat :=
   let c_equals_n_p_k : DFA_extended (List B2)  Nat := build_addition_DFA 'c' 'n' 'k'
 
   let t_a_equals_t_b_and_a_equals_ik := (crossproduct t_a_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_i_p_k)
-  let Ea_t_a_equals_t_b_and_a_equals_ik := quant t_a_equals_t_b_and_a_equals_ik [B2.zero, B2.zero, B2.zero] 'a' quant_op.exists [[B2.zero], [B2.one]]
+  let Ea_t_a_equals_t_b_and_a_equals_ik := quant t_a_equals_t_b_and_a_equals_ik 'a' quant_op.exists
 
   let t_a_equals_t_b_and_a_ik_and_b_ic := minimization (crossproduct Ea_t_a_equals_t_b_and_a_equals_ik (binary_ops.logical_op l_ops.and) b_equals_i_p_c)
-  let Eab_t_a_equals_t_b_and_a_ik_and_b_ic := quant t_a_equals_t_b_and_a_ik_and_b_ic [B2.zero, B2.zero, B2.zero] 'b' quant_op.exists [[B2.zero], [B2.one]]
+  let Eab_t_a_equals_t_b_and_a_ik_and_b_ic := quant t_a_equals_t_b_and_a_ik_and_b_ic 'b' quant_op.exists
   let t_a_equals_t_b_and_a_ik_and_b_ink := minimization (crossproduct Eab_t_a_equals_t_b_and_a_ik_and_b_ic (binary_ops.logical_op l_ops.and) c_equals_n_p_k)
-  let Eabc_t_a_equals_t_b_and_a_ik_and_b_ink := minimization (quant t_a_equals_t_b_and_a_ik_and_b_ink [B2.zero,B2.zero,B2.zero] 'c' quant_op.exists [[B2.zero], [B2.one]])
+  let Eabc_t_a_equals_t_b_and_a_ik_and_b_ink := minimization (quant t_a_equals_t_b_and_a_ik_and_b_ink 'c' quant_op.exists)
 
   let k_lt_n := build_less_than_DFA 'k' 'n'
   let k_eq_n := build_equals_DFA 'k' 'n'
   let k_lteq_n := minimization (crossproduct k_lt_n (binary_ops.logical_op l_ops.or) k_eq_n)
 
   let k_lteq_n_imp_th_ik_equals_th_ink := minimization (crossproduct k_lteq_n (binary_ops.logical_op l_ops.impl) Eabc_t_a_equals_t_b_and_a_ik_and_b_ink)
-  let Ak_k_lteq_n_impl_t_ik_equals_t_ink :=  minimization (quant k_lteq_n_imp_th_ik_equals_th_ink [B2.zero, B2.zero] 'k' quant_op.for_all [[B2.zero], [B2.one]])
+  let Ak_k_lteq_n_impl_t_ik_equals_t_ink :=  minimization (quant k_lteq_n_imp_th_ik_equals_th_ink 'k' quant_op.for_all)
 
   let n_lt_a := build_less_than_DFA 'n' 'a'
   let n_eq_a := build_equals_DFA 'n' 'a'
   let n_lteq_a := minimization (crossproduct n_lt_a (binary_ops.logical_op l_ops.or) n_eq_a)
   let a_0 := build_equals_digit_DFA [] [B2.zero] 'a'
   let n_lteq_0 := minimization (crossproduct n_lteq_a (binary_ops.logical_op l_ops.and) a_0)
-  let n_gt_0' :=  quant (n_lteq_0) [B2.zero] 'a' quant_op.exists [[B2.zero], [B2.one]]
+  let n_gt_0' :=  quant (n_lteq_0) 'a' quant_op.exists
   let n_gt_0 :=  complement n_gt_0'
 
   let n_gt_0_and_Ak_k_lteq_n_impl_t_ik_eq_t_ink :=  minimization (crossproduct n_gt_0 (binary_ops.logical_op l_ops.and) Ak_k_lteq_n_impl_t_ik_equals_t_ink)
-  let Ei_above := minimization (quant n_gt_0_and_Ak_k_lteq_n_impl_t_ik_eq_t_ink [B2.zero] 'i' quant_op.exists [[B2.zero], [B2.one]])
-  let En_above := minimization (quant Ei_above [B2.zero] 'n' quant_op.exists [[B2.zero], [B2.one]])
+  let Ei_above := minimization (quant n_gt_0_and_Ak_k_lteq_n_impl_t_ik_eq_t_ink 'i' quant_op.exists)
+  let En_above := minimization (quant Ei_above 'n' quant_op.exists)
   complement En_above
 
-#eval thue_morse_does_not_have_overlaps.states
-#eval thue_morse_does_not_have_overlaps.states_accept
+#time #eval thue_morse_does_not_have_overlaps.states
+#time #eval thue_morse_does_not_have_overlaps.states_accept
+
+
+def thumb : DFA_extended (List B2) Nat :=
+  let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
+  let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
+  let t_a__not_equals_t_b := complement (minimization (crossproduct thue_morse_a (binary_ops.comparison_op c_ops.equals) thue_morse_b))
+
+  let a_equals_i_p_t : DFA_extended (List B2)  Nat := build_addition_DFA 'a' 'i' 't'
+
+  let b_equals_c_m_j : DFA_extended (List B2)  Nat := build_subtraction_DFA 'b' 'c' 'j'
+  let c_equals_i_p_d : DFA_extended (List B2)  Nat := build_addition_DFA 'c' 'i' 'd'
+  let d_equals_n_p_t : DFA_extended (List B2)  Nat := build_addition_DFA 'd' 'n' 't'
+
+  let t_a_nequals_t_b_and_a_equals_it := minimization (crossproduct t_a__not_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_i_p_t)
+  let Ea_t_a_nequals_t_b_and_a_equals_it := minimization (quant t_a_nequals_t_b_and_a_equals_it 'a' quant_op.exists)
+
+  let t_a_nequals_t_b_and_a_it_and_b_cj := minimization (crossproduct Ea_t_a_nequals_t_b_and_a_equals_it (binary_ops.logical_op l_ops.and) b_equals_c_m_j)
+  let Eab_t_a_nequals_t_b_and_a_ik_and_b_cj := minimization (quant t_a_nequals_t_b_and_a_it_and_b_cj 'b' quant_op.exists)
+
+  let t_a_nequals_t_b_and_a_ik_and_b_ind := minimization (crossproduct Eab_t_a_nequals_t_b_and_a_ik_and_b_cj (binary_ops.logical_op l_ops.and) c_equals_i_p_d)
+  let Eabc_t_a_equals_t_b_and_a_ik_and_b_ind := minimization (quant t_a_nequals_t_b_and_a_ik_and_b_ind 'c' quant_op.exists)
+
+  let t_a_nequals_t_b_and_a_ik_and_b_intj := minimization (crossproduct Eabc_t_a_equals_t_b_and_a_ik_and_b_ind (binary_ops.logical_op l_ops.and) d_equals_n_p_t)
+  let Tik_neq_Tintj := minimization (quant t_a_nequals_t_b_and_a_ik_and_b_intj 'd' quant_op.exists)
+  let t_lt_j := build_less_than_DFA 't' 'j'
+  let t_lt_j_and_Tik_neq_Tintj := minimization (crossproduct t_lt_j (binary_ops.logical_op l_ops.and) Tik_neq_Tintj)
+  let Et_t_lt_j_and_Tik_neq_Tintj := minimization (quant t_lt_j_and_Tik_neq_Tintj 't' quant_op.exists)
+
+  -- j >= 1
+  let a_lt_j := build_less_than_DFA 'a' 'j'
+  let a_eq_0 := build_equals_digit_DFA [] [B2.zero] 'a'
+  let a_lt_j_and_a_eq_0 := minimization (crossproduct a_lt_j (binary_ops.logical_op l_ops.and) a_eq_0)
+  let j_geq_1 :=  minimization (quant (a_lt_j_and_a_eq_0) 'a' quant_op.exists)
+  -- a <= n
+  let a_lt_n := build_less_than_DFA 'a' 'n'
+  let n_eq_a := build_equals_DFA 'n' 'a'
+  let a_lteq_n := minimization (crossproduct a_lt_n (binary_ops.logical_op l_ops.or) n_eq_a)
+  -- a = 2*j := a= j + j
+  let a_eq_j_p_j := build_addition_DFA 'a' 'j' 'j'
+  -- crossproduct and (2*j<=n)
+  let a_eq_jj_and_a_lteq_n := minimization (crossproduct a_eq_j_p_j (binary_ops.logical_op l_ops.and) a_lteq_n)
+  let jj_lteq_n :=  minimization (quant (a_eq_jj_and_a_lteq_n) 'a' quant_op.exists)
+  -- crossproduct j>=1 and 2*j<=n
+  let j_geq_1_and_jj_lteq_n := minimization (crossproduct j_geq_1 (binary_ops.logical_op l_ops.and) jj_lteq_n)
+  -- crossproduct imply
+  /-let j_geq_1_and_jj_lteq_n_imp_T := minimization (crossproduct j_geq_1_and_jj_lteq_n (binary_ops.logical_op l_ops.impl) Et_t_lt_j_and_Tik_neq_Tintj)
+  -- for all j
+  let final_0 :=  minimization (quant (j_geq_1_and_jj_lteq_n_imp_T) [B2.zero, B2.zero] 'j' quant_op.for_all)
+  -- exists i
+  let final_1 :=  minimization (quant (final_0) [B2.zero] 'i' quant_op.exists)
+  final_1-/
+  Tik_neq_Tintj
+
+
+#time #eval thumb.states

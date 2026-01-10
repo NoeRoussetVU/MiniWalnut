@@ -1,6 +1,4 @@
-import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
-
 import MiniWalnut.Automata
 
 /-!
@@ -270,10 +268,14 @@ def quant'
 
 -/
 def quant
-  (M : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char) (op_type : quant_op)
-  (alphabet_vars : List (List B2)) : DFA_extended (List B2) (Nat) :=
-  match op_type with
-  | quant_op.exists =>
-      change_states_names (quant' M zero var alphabet_vars)
-  | quant_op.for_all =>
-      complement (change_states_names ((quant' (complement M) zero var alphabet_vars)))
+  (M : DFA_extended (List B2) (Nat)) (var : Char) (op_type : quant_op)
+  : DFA_extended (List B2) (Nat) :=
+  if !M.vars.contains var then
+    M
+  else
+    let zeros := List.replicate (M.vars.length-1) B2.zero
+    match op_type with
+    | quant_op.exists =>
+        change_states_names (quant' M zeros var [[B2.zero], [B2.one]])
+    | quant_op.for_all =>
+        complement (change_states_names ((quant' (complement M) zeros var [[B2.zero], [B2.one]])))

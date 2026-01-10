@@ -1,6 +1,4 @@
-import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
-
 import MiniWalnut.Automata
 
 /-!

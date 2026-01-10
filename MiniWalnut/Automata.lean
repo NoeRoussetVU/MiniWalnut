@@ -1,6 +1,4 @@
-import Mathlib.Topology.Basic
 import Mathlib.Computability.DFA
-import Mathlib.Data.Set.Basic
 
 /-!
 # Automata Definitions for Walnut Operations
@@ -220,6 +218,35 @@ example :
     input ∉ less_than.accepts := by
   simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, less_than]
 
+/-- Automaton for binary subtraction: accepts (a, b, c) where a = b - c.
+
+    ### States
+    - 0: No carry (initial and accepting state)
+    - 1: Has carry from previous position
+    - 2: Dead state (invalid input)
+
+    ### Transitions
+    - From state 0: If a = b - c is valid ([0,0,0],[1,1,0],[0,1,1]) stay in this state.
+      If [0,1,0] is read, a carry is generated and it goes to state 1.
+    - From state 1: If a = b - c is an operation with a carry ([1,1,1],[0,0,1],[0,1,0])
+      If [0,1,1] is read, the carry is consumed and it goes back to state 0.
+    - Anything else is invalid and goes to the dead state, 2.
+-/
+def subtraction : DFA (List B2) Nat := {
+  step := fun x y => match x,y with
+    | 0, [B2.zero, B2.zero, B2.zero] => 0
+    | 0, [B2.one, B2.one, B2.zero] => 0
+    | 0, [B2.zero, B2.one, B2.one] => 0
+    | 0, [B2.zero, B2.one, B2.zero] => 1
+    | 1, [B2.one, B2.one, B2.one] => 1
+    | 1, [B2.one, B2.zero, B2.zero] => 1
+    | 1, [B2.zero, B2.zero, B2.one] => 1
+    | 1, [B2.one, B2.zero, B2.one] => 0
+    | _, _ => 2
+  start := 0
+  accept := {x | x = 0}
+}
+
 /-!
 ## Thue-Morse Sequence DFAO
 
@@ -352,6 +379,26 @@ def build_less_than_DFA (var_1 : Char) (var_2 : Char) : DFA_extended (List B2) N
   [B2.one, B2.zero]]
   dead_state := some 2
   vars := [var_1, var_2]
+
+/-- Creates a complete extended DFA for subtraction with all metadata.
+
+    ### Parameters
+    - `vars`: The name of the input tracks
+-/
+def build_subtraction_DFA (var_1 : Char) (var_2 : Char) (var_3 : Char) : DFA_extended (List B2) Nat where
+  automata := subtraction
+  states :=  Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
+  states_accept := Std.HashSet.emptyWithCapacity.insertMany [0]
+  alphabet := Std.HashSet.emptyWithCapacity.insertMany [[B2.zero, B2.zero, B2.zero],
+  [B2.one, B2.one, B2.zero],
+  [B2.one, B2.zero, B2.one],
+  [B2.one, B2.zero, B2.zero],
+  [B2.one, B2.one, B2.one],
+  [B2.zero, B2.one, B2.zero],
+  [B2.zero, B2.zero, B2.one],
+  [B2.zero, B2.one, B2.one]]
+  dead_state := some 2
+  vars := [var_1, var_2, var_3]
 
 /-- Creates a complete extended DFA for Thue-Morse sequence equality.
 
