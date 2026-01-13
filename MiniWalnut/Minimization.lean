@@ -217,8 +217,8 @@ def remove_unreachable_states {Q T : Type} [DecidableEq Q] [DecidableEq T]
     ### Parameters
     - `M`: Original DFA to minimize
 -/
-def minimization' {Input : Type} [Inhabited Input] [DecidableEq Input]
-  (M : DFA_extended (List Input) Nat) : DFA_extended (List Input) (List Nat) :=
+def minimization'
+  (M : DFA_extended (List B2) Nat) : DFA_extended (List B2) (List Nat) :=
   let m1_states_list := M.states.toList
   let m1_accept_list := M.states_accept.toList
   let m1_alphabet_list := M.alphabet.toList

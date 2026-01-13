@@ -43,13 +43,13 @@ inductive B2 where
     - `vars`: Variable names associated with the automaton's inputs
     - `automata`: DFA structure from Mathlib
 -/
-structure DFA_extended (T : Type) (Q : Type) [Hashable Q] [BEq Q]  where
+structure DFA_extended (T : Type) (Q : Type) [Hashable Q] [BEq Q] [Hashable T] [BEq T] where
   states : Std.HashSet Q
   states_accept : Std.HashSet Q
-  alphabet : Std.HashSet (List B2)
+  alphabet : Std.HashSet T
   dead_state : Option Q
   vars : List Char
-  automata : DFA (List B2) Q
+  automata : DFA T Q
 
 /-!
 
@@ -445,14 +445,11 @@ def complement
 -/
 def assign_numbers {State : Type} [DecidableEq State] [Hashable State]
 (all_states : List State) (accepting_states : List State) : (List ℕ × List ℕ × Std.HashMap State ℕ) :=
-  let uniqueElements := all_states.foldl (fun acc elem =>
-    if elem ∈ acc then acc else acc ++ [elem]) []
-
-  let mapping := Std.HashMap.ofList uniqueElements.zipIdx
-
+  -- Pairs each state with its index
+  let mapping := Std.HashMap.ofList all_states.zipIdx
+  -- Returns appropriate index
   let lookupNumber (elem : State) : ℕ :=
     mapping[elem]!
-
   (all_states.map lookupNumber, accepting_states.map lookupNumber, mapping)
 
 /-- Converts a DFA with arbitrary state type to one with Nat states.
@@ -472,17 +469,14 @@ def change_states_names
   let mappings := (assign_numbers m1_states_list m1_accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst
-
   -- Build transition table
   let transitions := m1_states_list.flatMap (fun x =>
                       m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
                                                 mappings.snd.snd[(M1.automata.step (x) z)]! )))
-
   -- Convert dead state if it exists
   let new_dead_state := match M1.dead_state with
                 |none => none
                 |some n => some mappings.snd.snd[n]!
-
   -- Build new automaton with Nat states using the transition table
   let automata := {
     step := fun st input =>
