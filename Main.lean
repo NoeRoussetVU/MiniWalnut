@@ -1,4 +1,4 @@
-import MiniWalnut.Basic
+import MiniWalnut.Examples
 
 def conversion (b : B2) : Int :=
   match b with
@@ -7,7 +7,7 @@ def conversion (b : B2) : Int :=
 -- prints graphivs format
 def printDFADot : IO Unit := do
 
-  let res := tmsquarelengths
+  let res := paltm
 
   IO.println s!"vars {res.vars}"
 

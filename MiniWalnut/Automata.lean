@@ -443,14 +443,19 @@ def complement
     ### Returns
     A triple: (numbered states, numbered accepting states, state→number mapping)
 -/
-def assign_numbers {State : Type} [DecidableEq State] [Hashable State]
-(all_states : List State) (accepting_states : List State) : (List ℕ × List ℕ × Std.HashMap State ℕ) :=
+def assign_numbers
+(all_states : List (List Nat)) (accepting_states : List (List Nat)) : (List ℕ × List ℕ × Std.HashMap (List Nat) ℕ) :=
   -- Pairs each state with its index
   let mapping := Std.HashMap.ofList all_states.zipIdx
   -- Returns appropriate index
-  let lookupNumber (elem : State) : ℕ :=
+  let lookupNumber (elem : (List Nat)) : ℕ :=
     mapping[elem]!
   (all_states.map lookupNumber, accepting_states.map lookupNumber, mapping)
+
+def swapHashMap {α β} [BEq α] [Hashable α] [BEq β] [Hashable β]
+    (m : Std.HashMap α β) : Std.HashMap β α :=
+  m.fold (init := Std.HashMap.emptyWithCapacity) fun acc key value =>
+    acc.insert value key
 
 /-- Converts a DFA with arbitrary state type to one with Nat states.
 
@@ -469,23 +474,25 @@ def change_states_names
   let mappings := (assign_numbers m1_states_list m1_accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst
+  let mapp := mappings.snd.snd
+  let switched := swapHashMap mapp
   -- Build transition table
-  let transitions := m1_states_list.flatMap (fun x =>
-                      m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
-                                                mappings.snd.snd[(M1.automata.step (x) z)]! )))
+  --let transitions := m1_states_list.flatMap (fun x =>
+  --                    m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
+  --                                              mappings.snd.snd[(M1.automata.step (x) z)]! )))
   -- Convert dead state if it exists
   let new_dead_state := match M1.dead_state with
                 |none => none
                 |some n => some mappings.snd.snd[n]!
   -- Build new automaton with Nat states using the transition table
   let automata := {
-    step := fun st input =>
-      let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
+    step := fun st input => mapp[(M1.automata.step (switched[st]!) input)]!
+      /-let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
       match tr.head? with
       | some ((_,_),z) => z
       | _ => match new_dead_state with
             | some w => w
-            | _ => new_states.length+1  -- Default dead state
+            | _ => new_states.length+1  -- Default dead state-/
     start :=  mappings.snd.snd[M1.automata.start]!
     accept := {p | new_states_accept.contains p}
   }

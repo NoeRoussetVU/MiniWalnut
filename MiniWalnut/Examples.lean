@@ -5,72 +5,72 @@ import MiniWalnut.Crossproduct
 import MiniWalnut.Quantification
 import MiniWalnut.Minimization
 
--- eval tmsquarelengths "Ej Ai (i<n) => T[j+i] = T[j+n+i]":
+/-- For which n does the Thue-Morse word have a square xx where |x| = n ?
+
+eval tmsquarelengths "Ej Ai (i < n) => T[j+i] = T[j+n+i]": -/
 def tmsquarelengths : DFA_extended (List B2) Nat :=
+  -- T[a] = T[b]
   let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
   let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
   let t_a_equals_t_b := minimization (crossproduct thue_morse_a (binary_ops.comparison_op c_ops.equals) thue_morse_b)
-
+  -- a = j + i, b = j + c, c = n + i
   let a_equals_j_p_i : DFA_extended (List B2)  Nat := build_addition_DFA 'a' 'j' 'i'
   let b_equals_j_p_c : DFA_extended (List B2)  Nat := build_addition_DFA 'b' 'j' 'c'
   let c_equals_n_p_i : DFA_extended (List B2)  Nat := build_addition_DFA 'c' 'n' 'i'
-
+  -- Ea T[a] = T[b] & a = j + i
   let Ta_equals_Tb_and_a_ji := (crossproduct t_a_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_j_p_i)
   let Ea_Ta_equals_Tb_and_a_ji := (quant Ta_equals_Tb_and_a_ji 'a' quant_op.exists)
-
+  -- T[j+i] = T[j+n+i]
   let Ta_equals_Tb_and_a_ji_and_b_jc := minimization (crossproduct Ea_Ta_equals_Tb_and_a_ji (binary_ops.logical_op l_ops.and) b_equals_j_p_c)
   let Eab_Ta_equals_Tb_and_a_ji_and_b_jc := minimization (quant Ta_equals_Tb_and_a_ji_and_b_jc 'b' quant_op.exists)
   let Ta_equals_Tb_and_a_ik_and_b_ink := minimization (crossproduct Eab_Ta_equals_Tb_and_a_ji_and_b_jc (binary_ops.logical_op l_ops.and) c_equals_n_p_i)
   let Eabc_Ta_equals_Tb_and_a_ik_and_b_ink := minimization (quant Ta_equals_Tb_and_a_ik_and_b_ink 'c' quant_op.exists)
-
+  -- i < n & T[i+k] = T[j+n+i]
   let i_lt_n := build_less_than_DFA 'i' 'n'
   let i_lt_n_impl_Tik_equals_Tink := minimization (crossproduct i_lt_n (binary_ops.logical_op l_ops.impl) Eabc_Ta_equals_Tb_and_a_ik_and_b_ink)
+  -- Ej Ai (i < n) => T[j+i] = T[j+n+i]
   let Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant i_lt_n_impl_Tik_equals_Tink 'i' quant_op.for_all)
   let Ej_Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant Ai_i_lt_n_and_Tik_equals_Tink 'j' quant_op.exists)
   Ej_Ai_i_lt_n_and_Tik_equals_Tink
 
+/-- For which n does the Thue-Morse word have a palindrome of length n?
 
---#time #eval tmsquarelengths.states
---#time #eval tmsquarelengths.states_accept
-
--- eval paltm "Ei Aj (j<n) => T[i+j] = T[(i+n)-(j+1)]":
+eval paltm "Ei Aj (j<n) => T[i+j] = T[(i+n)-(j+1)]": -/
 def paltm : DFA_extended (List B2) Nat :=
+  -- T[a] = T[b]
   let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
   let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
   let t_a_equals_t_b := (minimization (crossproduct thue_morse_a (binary_ops.comparison_op c_ops.equals) thue_morse_b))
-
+  -- a = i + j, b = c - d, c = i + p, d = j + e, e = 1
   let a_equals_i_p_j : DFA_extended (List B2)  Nat := build_addition_DFA 'a' 'i' 'j'
-
   let b_equals_c_m_d : DFA_extended (List B2)  Nat := build_subtraction_DFA 'b' 'c' 'd'
   let c_equals_i_p_n : DFA_extended (List B2)  Nat := build_addition_DFA 'c' 'i' 'n'
   let d_equals_j_p_e : DFA_extended (List B2)  Nat := build_addition_DFA 'd' 'j' 'e'
   let e_equals_1 := build_equals_digit_DFA [[B2.one]] [B2.zero] 'e'
-
+  -- d = j + 1
   let d_equals_jpe_eq_1 := minimization (crossproduct d_equals_j_p_e (binary_ops.logical_op l_ops.and) e_equals_1)
   let d_equals_jp1 := minimization (quant d_equals_jpe_eq_1 'e' quant_op.exists)
-
+  -- b = (i+n)-(j+1)
   let b_equals_c_m_d_and_c_ipn := minimization (crossproduct b_equals_c_m_d (binary_ops.logical_op l_ops.and) c_equals_i_p_n)
   let b_equals_ipn_m_d := minimization (quant b_equals_c_m_d_and_c_ipn 'c' quant_op.exists)
-
   let b_equals_ipn_m_d_and_d_jp1 := minimization (crossproduct b_equals_ipn_m_d (binary_ops.logical_op l_ops.and) d_equals_jp1)
   let in_minus_j1 := minimization (quant b_equals_ipn_m_d_and_d_jp1 'd' quant_op.exists)
-
+  -- T[i+j] = T[(i+n)-(j+1)]
   let Ta_equals_Tb_and_a_ij := minimization (crossproduct t_a_equals_t_b (binary_ops.logical_op l_ops.and) a_equals_i_p_j)
   let Ea_Ta_equals_Tb_and_a_ij := minimization (quant Ta_equals_Tb_and_a_ij 'a' quant_op.exists)
-
   let Tij_equals_Tb_and_b_in_minus_j1 := minimization (crossproduct Ea_Ta_equals_Tb_and_a_ij (binary_ops.logical_op l_ops.and) in_minus_j1)
   let Eb_Tij_equals_Tb_and_b_in_minus_j1 := minimization (quant Tij_equals_Tb_and_b_in_minus_j1 'b' quant_op.exists)
-
+  -- (j < n )
   let j_lt_n := build_less_than_DFA 'j' 'n'
+  -- Ei Aj (j<n) => T[i+j] = T[(i+n)-(j+1)]
   let j_lt_n_impl_Tij_equals_Tin_m_j1 := minimization (crossproduct j_lt_n (binary_ops.logical_op l_ops.impl) Eb_Tij_equals_Tb_and_b_in_minus_j1)
   let Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant j_lt_n_impl_Tij_equals_Tin_m_j1 'j' quant_op.for_all)
   let Ej_Ai_i_lt_n_and_Tik_equals_Tink := minimization (quant Ai_i_lt_n_and_Tik_equals_Tink 'i' quant_op.exists)
   Ej_Ai_i_lt_n_and_Tik_equals_Tink
 
+/-- Is the Thue-Morse sequence ultimately periodic, yes or no?
 
--- #time #eval paltm.states
-
---eval tmup "En Ei n>=1 & Aj (j>=i) => T[j] = T[n+j]":
+eval tmup "En Ei n>=1 & Aj (j>=i) => T[j] = T[n+j]": -/
 def tmup : DFA_extended (List B2) Nat :=
   let thue_morse_j := build_TH_equals_digit_DFA [0,1] 'j'
   let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
@@ -99,9 +99,9 @@ def tmup : DFA_extended (List B2) Nat :=
   let En_Ei_final := minimization (quant (Ei_final) 'n' quant_op.exists)
   En_Ei_final
 
--- #time #eval tmup.states_accept
-#eval tmup.vars
+/-- For which n does the Thue-Morse sequence have a square or order n?
 
+eval order_of_squares_in_thue_morse_word "Ei n > 0 & (Ak k < n => T [i + k] = T [i + n + k])": -/
 def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
   let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
   let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
@@ -134,10 +134,9 @@ def order_of_squares_in_th_word : DFA_extended (List B2) Nat :=
   let squares_in_th_word :=  minimization (crossproduct n_gt_0 (binary_ops.logical_op l_ops.and) Ak_k_lt_n_impl_t_ik_equals_t_ink)
   minimization (quant squares_in_th_word 'i' quant_op.exists)
 
--- #time #eval order_of_squares_in_th_word.states
--- #time #eval order_of_squares_in_th_word.states_accept
--- #time #eval order_of_squares_in_th_word.automata.start
+/-- Does the Thue-Morse sequence contains any overlaps?
 
+eval thue_morse_does_not_have_overlaps "∼ (Ei , n n > 0 & (Ak k <= n => T [i + k] = T [i + n + k]))": -/
 def thue_morse_does_not_have_overlaps : DFA_extended (List B2) Nat :=
   let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
   let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
@@ -175,10 +174,11 @@ def thue_morse_does_not_have_overlaps : DFA_extended (List B2) Nat :=
   let En_above := minimization (quant Ei_above 'n' quant_op.exists)
   complement En_above
 
--- #time #eval thue_morse_does_not_have_overlaps.states
--- #time #eval thue_morse_does_not_have_overlaps.states_accept
+/-- For which n does the Thue-Morse word have an unbordered factor of length n?
+(A factor is "bordered" if it begins and ends with the same word,
+in a nontrivial way.  It is unbordered otherwise.)
 
-
+eval tmunb "Ei Aj (j>=1 & 2*j<=n) => Et (t < j) & T[i+t] != T[(i+n+t)-j]": -/
 def tmunb : DFA_extended (List B2) Nat :=
   let thue_morse_a := build_TH_equals_digit_DFA [0,1] 'a'
   let thue_morse_b := build_TH_equals_digit_DFA [0,1] 'b'
@@ -227,5 +227,3 @@ def tmunb : DFA_extended (List B2) Nat :=
   -- exists i
   let final_1 :=  minimization (quant (final_0) 'i' quant_op.exists)
   Et_t_lt_j_and_Tik_neq_Tintj
-
---#time #eval tmunb.states

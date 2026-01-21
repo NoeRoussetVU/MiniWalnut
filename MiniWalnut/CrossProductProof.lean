@@ -43,6 +43,7 @@ def DFA.crossProduct {T1 : Type u1} {T2 : Type u2} {Q1 : Type v1} {Q2 : Type v2}
 
 Cross product of two automata that accept [0, 1] and [1, 0] should accept [(0, 1), (1, 0)]
 -/
+set_option linter.style.longLine false
 
 -- Accepts 0*1
 def accepts_1 : DFA B2 Nat where
@@ -155,7 +156,7 @@ theorem evalFrom_of_append (start : (Q1 × Q2)) (x y : List (T1 × T2)) :
 /-- For a list of tuple with `xy` as input for `(x,y) = xy.unzip` and starting
 from state `(s1,s2)`, `(M1.crossProduct M2).evalFrom (s1,s2) xy` evaluates the same
 reached state as `(M1.evalFrom s1 x, M2.evalFrom s2 y)` -/
-lemma DFA.evalFrom_crossProduct_unzip
+theorem DFA.evalFrom_crossProduct_unzip
   (s1 : Q1)
   (s2 : Q2)
   (xy : List (T1 × T2)) :
@@ -169,7 +170,7 @@ lemma DFA.evalFrom_crossProduct_unzip
 
 /-- For a list of tuple with `xy` as input for `(x,y) = xy.unzip`,
 `(M1.crossProduct M2).eval xy` evaluates the same reached state as `(M1.eval x, M2.eval y)` -/
-lemma DFA.step_crossProduct_unzip
+theorem DFA.step_crossProduct_unzip
   (xy : List (T1 × T2)) :
     (M1.crossProduct M2).eval xy = (M1.eval xy.unzip.1, M2.eval xy.unzip.2) := by
   induction xy using List.reverseRecOn with

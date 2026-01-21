@@ -1,4 +1,4 @@
-import MiniWalnut.Basic
+import MiniWalnut.Examples
 import Mathlib.Computability.DFA
 
 /-!
@@ -57,4 +57,14 @@ import Mathlib.Computability.DFA
   - **Set Operations**: Helper functions for set difference and intersection
   - **Hopcroft's Algorithm**: Core minimization algorithm
   - **Unreachable State Removal**: BFS to find reachable states
+
+  ## Examples
+
+  This file implements different examples of MiniWalnut being used to prove properties of
+  the Thue-Morse sequence, taken from [here](https://cs.uwaterloo.ca/~shallit/walnut-examples.txt)
+
+  ## Main
+
+  This file implements the function printDFADot which prints a graphviz notation of a given DFA
+
 -/

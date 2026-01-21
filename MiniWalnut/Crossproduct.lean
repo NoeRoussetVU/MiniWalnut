@@ -179,20 +179,26 @@ def crossproduct'
     vars := vars,
     automata := automata}
 
+def assign_numbers_cp
+(all_states : List (Nat × Nat)) (accepting_states : List (Nat × Nat)) : (List ℕ × List ℕ × Std.HashMap (Nat × Nat) ℕ) :=
+  -- Pairs each state with its index
+  let mapping := Std.HashMap.ofList all_states.zipIdx
+  -- Returns appropriate index
+  let lookupNumber (elem : (Nat × Nat)) : ℕ :=
+    mapping[elem]!
+  (all_states.map lookupNumber, accepting_states.map lookupNumber, mapping)
+
 def change_states_names_cp
 (M1 : DFA_extended (List B2) (Nat × Nat))
  : DFA_extended (List B2) Nat :=
   let m1_states_list := M1.states.toList
   let m1_accept_list := M1.states_accept.toList
   let m1_alphabet_list := M1.alphabet.toList
-  let mappings := (assign_numbers m1_states_list m1_accept_list)
+  let mappings := (assign_numbers_cp m1_states_list m1_accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst
-
-  -- Build transition table
-  let transitions := m1_states_list.flatMap (fun x =>
-                      m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
-                                                mappings.snd.snd[(M1.automata.step (x) z)]! )))
+  let mapp := mappings.snd.snd
+  let switched := swapHashMap mapp
 
   -- Convert dead state if it exists
   let new_dead_state := match M1.dead_state with
@@ -201,13 +207,7 @@ def change_states_names_cp
 
   -- Build new automaton with Nat states using the transition table
   let automata := {
-    step := fun st input =>
-      let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
-      match tr.head? with
-      | some ((_,_),z) => z
-      | _ => match new_dead_state with
-            | some w => w
-            | _ => new_states.length+1  -- Default dead state
+    step := fun st input => mapp[(M1.automata.step (switched[st]!) input)]!
     start :=  mappings.snd.snd[M1.automata.start]!
     accept := {p | new_states_accept.contains p}
   }
