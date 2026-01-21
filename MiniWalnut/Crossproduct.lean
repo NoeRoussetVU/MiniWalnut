@@ -193,7 +193,6 @@ def change_states_names_cp
  : DFA_extended (List B2) Nat :=
   let m1_states_list := M1.states.toList
   let m1_accept_list := M1.states_accept.toList
-  let m1_alphabet_list := M1.alphabet.toList
   let mappings := (assign_numbers_cp m1_states_list m1_accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst

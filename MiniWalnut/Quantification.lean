@@ -66,7 +66,7 @@ def process_symbol {Input : Type}
     - `num_possible_states`: Maximum number of possible initial states
     - `states`: Already visited states
 -/
-def find_initial_states {Input : Type} [DecidableEq Input] [BEq Input] [Hashable Input]
+def find_initial_states {Input : Type}
   (transition_function : (Nat) → Input → (List Nat)) (zero : Input)
   (current_states : List Nat) (num_possible_states : Nat) (states : List Nat)
    : List Nat :=
@@ -93,9 +93,9 @@ We use powerset construction to convert it to a DFA, with memoization for effici
     - `visited`: Set of states already explored (avoids reprocessing)
     - `memo`: Cache of computed transitions for each state
 -/
-structure determinize_state (Input1 : Type) [BEq Input1] [Hashable Input1] where
+structure determinize_state (Input : Type) where
   visited : Std.HashSet (List (Nat))
-  transitions : List (((List Nat) × Input1) × (List Nat))
+  transitions : List (((List Nat) × Input) × (List Nat))
 
 /-- Determinization using depth-first search with memoization.
 
@@ -116,10 +116,10 @@ structure determinize_state (Input1 : Type) [BEq Input1] [Hashable Input1] where
     ### Returns
     Pair of (all transitions discovered, updated memoization state)
 -/
-def determinize_with_memo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable Input1]
-  (transition_function : (Nat) → Input1 → (List Nat)) (alphabet : List Input1)
-  (current_state : List Nat) (num_possible_states : Nat) (state : determinize_state Input1)
-   : determinize_state Input1 :=
+def determinize_with_memo {Input : Type} [DecidableEq Input]
+  (transition_function : (Nat) → Input → (List Nat)) (alphabet : List Input)
+  (current_state : List Nat) (num_possible_states : Nat) (state : determinize_state Input)
+   : determinize_state Input :=
   -- Base case: reached recursion limit
   if num_possible_states = 0 then state
   else
@@ -130,7 +130,7 @@ def determinize_with_memo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Has
       let new_visited := state.visited.insert current_state
       let mut new_state := { state with visited := new_visited }
       let mut next_states : List (List ℕ) := []
-      let mut current_transitions : List ((List ℕ × Input1) × List ℕ):= []
+      let mut current_transitions : List ((List ℕ × Input) × List ℕ):= []
 
       for symbol in alphabet do
         let next_state := (current_state.map (fun y => transition_function y symbol)).flatten.mergeSort.dedup
@@ -161,9 +161,9 @@ def determinize_with_memo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Has
     List of all transitions in the determinized DFA, where each transition
     is ((source_state_set, input_symbol), target_state_set)
 -/
-def determinize_memo {Input1 : Type} [DecidableEq Input1] [BEq Input1] [Hashable Input1]
-  (transition_function : Nat → Input1 → (List Nat)) (alphabet : List Input1)
-  (initial_state : List Nat) (max_states : Nat) : determinize_state Input1 :=
+def determinize_memo {Input : Type} [DecidableEq Input]
+  (transition_function : Nat → Input → (List Nat)) (alphabet : List Input)
+  (initial_state : List Nat) (max_states : Nat) : determinize_state Input :=
   let initial_state_obj := ⟨Std.HashSet.emptyWithCapacity, []⟩
   determinize_with_memo transition_function alphabet initial_state max_states initial_state_obj
 
