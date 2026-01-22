@@ -77,18 +77,6 @@ def alphabet_construction : (input_length : Nat) → List (List B2)
     For each state pair (q₁, q₂):
     - **Logical operations**: Check if q₁ and/or q₂ are accepting based on the operator
     - **Comparison operations**: Check if the state numbers satisfy the comparison
-
-    ### Logical Operation
-    - `and`: Accept if both q₁ ∈ F₁ and q₂ ∈ F₂
-    - `or`: Accept if q₁ ∈ F₁ or q₂ ∈ F₂
-    - `xor`: Accept if exactly one of q₁, q₂ is accepting
-    - `impl`: Accept if q₁ ∉ F₁ or q₂ ∈ F₂ (!q₁ ∨ q₂)
-    - `equiv`: Accept if both accept or both reject
-
-    ### Comparison Operation
-    - `equals`: Accept if q₁ == q₂ (used for equality testing)
-    - `less_than`: Accept if q₁ < q₂
-    - `more_than`: Accept if q₁ > q₂
 -/
 def get_accepting_states (states : Std.HashSet (Nat × Nat))
 (M₁_accepting : Std.HashSet Nat) (conj : binary_ops) (M₂_accepting : Std.HashSet Nat)
@@ -142,36 +130,33 @@ def get_accepting_states (states : Std.HashSet (Nat × Nat))
 def crossproduct'
 (M₁ : DFA_extended (List B2) Nat) (operator : binary_ops) (M₂ : DFA_extended (List B2) Nat)
  : DFA_extended (List B2) (Nat × Nat) :=
-  -- Step 1: Cartesian product of states
+  -- Cartesian product of states
   let states := states_construction M₁.states M₂.states
-  -- Step 2: Determine accepting states based on the operation
+  -- Determine accepting states based on the operation
   let states_accept := get_accepting_states states M₁.states_accept operator M₂.states_accept
-  -- Step 3: Merge and sort variable lists
+  -- Merge and sort variable lists
   let vars := (M₁.vars ++ M₂.vars).dedup
-  -- Step 4: Construct the combined alphabet
+  -- Construct the combined alphabet
   let alphabet := Std.HashSet.emptyWithCapacity.insertMany (alphabet_construction vars.length)
-  -- Step 5: Dead state exists only if both have dead states
+  -- Dead state exists only if both have dead states
   let dead_state := match M₁.dead_state, M₂.dead_state with
                 | _, none => none
                 | none, _ => none
                 | some n, some y => some ((n,y))
-  -- Step 6: Define transition function
-  -- Maps input symbols to their corresponding variables, then extracts
-  -- the relevant symbols for each component DFA
-  let temp_f := fun (st : (Nat × Nat)) (a : (List B2)) =>
-      -- Create mapping: variable name → input symbol at that position
-      let varias : Std.HashMap Char B2 := Std.HashMap.ofList (vars.zip a)
-      -- Transition each component using only its variables
-      ((M₁.automata.step st.fst (M₁.vars.map (fun x => varias[x]!))),
-       (M₂.automata.step st.snd (M₂.vars.map (fun x => varias[x]!))))
-
   -- Build the product automaton
   let automata := {
-    step := fun st input => temp_f st input
+    -- Define transition function
+    -- Maps input symbols to their corresponding variables, then extracts
+    -- the relevant symbols for each component DFA
+    step := fun (st : (Nat × Nat)) (a : (List B2)) =>
+      -- Create mapping: variable name → input symbol at that position
+      let vars : Std.HashMap Char B2 := Std.HashMap.ofList (vars.zip a)
+      -- Transition each component using only its variables
+      ((M₁.automata.step st.fst (M₁.vars.map (fun x => vars[x]!))),
+       (M₂.automata.step st.snd (M₂.vars.map (fun x => vars[x]!))))
     start :=  (M₁.automata.start, M₂.automata.start)
     accept := {p | states_accept.contains p}
   }
-
   {states := states,
     states_accept := states_accept,
     alphabet := alphabet,
@@ -198,12 +183,10 @@ def change_states_names_cp
   let new_states_accept :=  mappings.snd.fst
   let mapp := mappings.snd.snd
   let switched := swapHashMap mapp
-
   -- Convert dead state if it exists
   let new_dead_state := match M1.dead_state with
                 |none => none
                 |some n => some mappings.snd.snd[n]!
-
   -- Build new automaton with Nat states using the transition table
   let automata := {
     step := fun st input => mapp[(M1.automata.step (switched[st]!) input)]!

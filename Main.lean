@@ -4,14 +4,14 @@ def conversion (b : B2) : Int :=
   match b with
   | B2.zero => 0
   | B2.one => 1
--- prints graphivs format
+-- prints graphvis format
 def printDFADot : IO Unit := do
 
   let res := paltm
 
   IO.println s!"vars {res.vars}"
 
-  IO.println "digraph thumb {"
+  IO.println "digraph graph {"
   IO.println "  rankdir=LR;"
   IO.println "  node [shape=circle];"
 

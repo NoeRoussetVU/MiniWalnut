@@ -466,41 +466,30 @@ def swapHashMap {α β} [BEq α] [Hashable α] [BEq β] [Hashable β]
     4. Preserve all metadata (alphabet, variables, etc.)
 -/
 def change_states_names
-(M1 : DFA_extended (List B2) (List Nat))
+(M : DFA_extended (List B2) (List Nat))
  : DFA_extended (List B2) Nat :=
-  let m1_states_list := M1.states.toList
-  let m1_accept_list := M1.states_accept.toList
-  let m1_alphabet_list := M1.alphabet.toList
-  let mappings := (assign_numbers m1_states_list m1_accept_list)
+  let states_list := M.states.toList
+  let accept_list := M.states_accept.toList
+  let mappings := (assign_numbers states_list accept_list)
   let new_states :=  mappings.fst
   let new_states_accept :=  mappings.snd.fst
-  let mapp := mappings.snd.snd
-  let switched := swapHashMap mapp
-  -- Build transition table
-  --let transitions := m1_states_list.flatMap (fun x =>
-  --                    m1_alphabet_list.map (fun z => ((mappings.snd.snd[(x)]!, z),
-  --                                              mappings.snd.snd[(M1.automata.step (x) z)]! )))
+  let old_to_new_map := mappings.snd.snd
+  let new_to_old_map := swapHashMap old_to_new_map
   -- Convert dead state if it exists
-  let new_dead_state := match M1.dead_state with
+  let new_dead_state := match M.dead_state with
                 |none => none
                 |some n => some mappings.snd.snd[n]!
   -- Build new automaton with Nat states using the transition table
   let automata := {
-    step := fun st input => mapp[(M1.automata.step (switched[st]!) input)]!
-      /-let tr := transitions.filter (fun ((x,y),_) => st = x ∧ input = y)
-      match tr.head? with
-      | some ((_,_),z) => z
-      | _ => match new_dead_state with
-            | some w => w
-            | _ => new_states.length+1  -- Default dead state-/
-    start :=  mappings.snd.snd[M1.automata.start]!
+    step := fun st input => old_to_new_map[(M.automata.step (new_to_old_map[st]!) input)]!
+    start :=  mappings.snd.snd[M.automata.start]!
     accept := {p | new_states_accept.contains p}
   }
   {
     states := Std.HashSet.emptyWithCapacity.insertMany new_states,
     states_accept := Std.HashSet.emptyWithCapacity.insertMany new_states_accept,
-    alphabet := M1.alphabet,
+    alphabet := M.alphabet,
     dead_state := new_dead_state,
-    vars := M1.vars,
+    vars := M.vars,
     automata := automata
   }

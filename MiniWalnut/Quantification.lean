@@ -128,23 +128,22 @@ def determinize_with_memo {Input : Type} [DecidableEq Input]
     else Id.run do
       -- Mark this state set as visited
       let new_visited := state.visited.insert current_state
+      -- Add current reachable states and transitions
       let mut new_state := { state with visited := new_visited }
       let mut next_states : List (List ℕ) := []
       let mut current_transitions : List ((List ℕ × Input) × List ℕ):= []
-
+      -- Call the transition function on all current states for each symbol in alphabet
       for symbol in alphabet do
         let next_state := (current_state.map (fun y => transition_function y symbol)).flatten.mergeSort.dedup
         next_states := next_states.insert next_state
         current_transitions := current_transitions.insert ((current_state, symbol), next_state)
-
       -- Recursively process each reachable state set
       for next_state in next_states do
         if !new_state.visited.contains next_state then
-          let nu_state := determinize_with_memo transition_function alphabet next_state (num_possible_states-1) new_state
-          let (sub_transitions, updated_state) := (nu_state.transitions, nu_state)
+          let reached_states := determinize_with_memo transition_function alphabet next_state (num_possible_states-1) new_state
+          let (sub_transitions, updated_state) := (reached_states.transitions, reached_states)
           current_transitions := current_transitions ++ sub_transitions
           new_state := updated_state
-
       -- Cache the result
       let final_state := { new_state with transitions := current_transitions }
       final_state
@@ -222,8 +221,8 @@ def quant'
   -- Step 5: Determinize the NFA
   let new_transitions := determinize_memo step new_alphabet start_states num_possible_states
   -- Step 6: Extract all states from transitions
-  let new_states' := new_transitions.visited.toList
-  let new_states := Std.HashSet.emptyWithCapacity.insertMany new_states'
+  let new_states_list := new_transitions.visited.toList
+  let new_states := Std.HashSet.emptyWithCapacity.insertMany new_states_list
   -- Step 7: Determine accepting states (any original accepting state in the set)
   let states_acc := new_states.filter (fun x => M.states_accept.any (fun y => x.contains y))
   -- Step 8: Build the resulting DFA
@@ -232,7 +231,7 @@ def quant'
       let transt := (new_transitions.transitions.filter (fun ((x,y),_) => st = x ∧ input = y))
       match transt.head? with
       | some ((x,y),z) => z
-      | _ => [new_states'.length + 1]  -- Dead state if no transition found
+      | _ => [new_states_list.length + 1]  -- Dead state if no transition found
     start := start_states
     accept := {p | states_acc.contains p}
   }
