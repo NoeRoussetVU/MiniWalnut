@@ -4,12 +4,10 @@ import MiniWalnut.Automata
 /-!
 # DFA Minimization
 
-This file implements DFA minimization using Hopcroft's algorithm, which is the
-most efficient algorithm for minimizing DFAs (O(n log n) where n is the number of states).
+This file implements DFA minimization using Hopcroft's algorithm.
 
 ## Main Components
 
-- **Set Operations**: Helper functions for set difference and intersection
 - **Hopcroft's Algorithm**: Core minimization algorithm
 - **Unreachable State Removal**: BFS to find reachable states
 
@@ -19,7 +17,7 @@ DFA minimization creates an equivalent DFA with the minimum number of states by:
 1. Removing unreachable states
 2. Merging indistinguishable states (states that accept the same language)
 
-Two states are **equivalent** (indistinguishable) if for all input strings w,
+Two states are equivalent if for all input strings w,
 starting from either state leads to acceptance or rejection together
 
 ## Hopcroft's Algorithm
@@ -122,8 +120,8 @@ def hopcroft_minimization {State Input : Type} [DecidableEq State] [DecidableEq 
           sets_to_split.foldl (fun (acc_P, acc_W) Y =>
             let intersection := set_intersection X Y
             let difference := set_difference Y X
-            let new_P := intersection :: difference :: acc_P.filter (· ≠ Y)   -- Replace Y in P with split
-            let new_W := update_worklist acc_W Y (intersection, difference)   -- Update worklist
+            let new_P := intersection :: difference :: acc_P.filter (· ≠ Y)
+            let new_W := update_worklist acc_W Y (intersection, difference)
             (new_P, new_W)
           ) (current_P, current_W)
         ) (P, rest_W)
@@ -156,11 +154,7 @@ def hopcroft_minimization {State Input : Type} [DecidableEq State] [DecidableEq 
     List of states reachable from the start state
 -/
 def remove_unreachable_states {Q T : Type} [DecidableEq Q] [DecidableEq T]
-    (states : List Q)
-    (alphabet : List T)
-    (delta : Q → T → Q)
-    (startState : Q) : List Q :=
-
+    (states : List Q) (alphabet : List T) (delta : Q → T → Q) (startState : Q) : List Q :=
   -- BFS implementation with explicit iteration bound for termination
   let rec bfs (queue : List Q) (visited : List Q) (max : Nat) : List Q :=
     if max = 0 then visited  -- Safety bound reached
@@ -194,14 +188,9 @@ def remove_unreachable_states {Q T : Type} [DecidableEq Q] [DecidableEq T]
 
     ### Algorithm
 
-    1. **Remove unreachable states**: Use BFS from start state
-    2. **Apply Hopcroft's algorithm**: Partition equivalent states
-    3. **Build minimized DFA**:
-       - States: Equivalence partitions
-       - Start state: Partition containing original initial state
-       - Accepting states: Partitions containing any original accepting state
-       - Transitions: Runs the original transition function on the first state of the input partition
-          and return the partition containing the obtained state
+    1. **Remove unreachable states**
+    2. **Apply Hopcroft's algorithm**
+    3. **Build minimized DFA**
 
     ### Parameters
     - `M`: Original DFA to minimize

@@ -44,8 +44,6 @@ inductive quant_op where
 ## Reachability Analysis
 
 These functions find all states reachable from starting states by reading zero prefixes.
-When removing a variable track from a DFA, transitions for 0 might be created.
-In MSD (most significant digit first) representation, numbers can have leading zeros.
 -/
 
 /-- Return all states reachable from `currentStates` using `symbol` and `f`-/
@@ -87,12 +85,7 @@ After removing a variable, we get an NFA (non-deterministic finite automaton).
 We use powerset construction to convert it to a DFA, with memoization for efficiency.
 -/
 
-/-- State for the determinization algorithm with memoization.
-
-    ### Fields
-    - `visited`: Set of states already explored (avoids reprocessing)
-    - `memo`: Cache of computed transitions for each state
--/
+/-- State for the determinization algorithm with memoization. -/
 structure determinize_state (Input : Type) where
   visited : Std.HashSet (List (Nat))
   transitions : List (((List Nat) × Input) × (List Nat))
@@ -185,21 +178,15 @@ def all_binary_combinations_qt : Nat → List (List B2)
     - `alphabet_vars`: All possible values for the quantified variable
 
     ### Algorithm
-    1. **Remove variable**: Remove the quantified variable's track from alphabet
-       - Find index of variable in vars list
-       - Remove that index from each alphabet symbol
+    1. **Remove variable from input**
 
-    2. **Create NFA**: Build transition function that considers all possible values
-       for the quantified variable
-       - For input on remaining variables, try all values for quantified variable
-       - Collect all reachable states
+    2. **Create NFA**
 
-    3. **Handle leading zeros**: Find all states reachable via 0* prefix
+    3. **Handle leading zeros**
 
-    4. **Determinize**: Convert NFA to DFA using powerset construction
+    4. **Determinize**
 
-    5. **Accepting states**: A state set is accepting if it contains any original accepting state
-       (Exists a value that leads to acceptance)
+    5. **Accepting states**
 -/
 def quant'
   (M : DFA_extended (List B2) (Nat)) (zero : List B2) (var : Char)

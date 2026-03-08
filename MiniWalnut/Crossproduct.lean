@@ -32,11 +32,11 @@ This is used to implement operations like:
 
 /-- Logical operators for combining automata languages. -/
 inductive l_ops where
-  | and                      -- L₁ ∧ L₂: accepts if both automata accept
-  | or                       -- L₁ ∨ L₂: accepts if either automaton accepts
-  | xor                      -- L₁ ⊕ L₂: accepts if exactly one automaton accepts (XOR)
-  | impl                     -- L₁ → L₂: accepts if M₁ doesn't accept or M₂ accepts
-  | equiv                    -- L₁ ↔ L₂: accepts if both accept or both reject
+  | and
+  | or
+  | xor
+  | impl
+  | equiv
 
 /-- Comparison operators for building automata from arithmetic relations.
 
@@ -55,7 +55,6 @@ inductive binary_ops where
 
 /-!
 ## Cross Product Construction
-  - Main functions that create the cross product of two given automata.
 -/
 
 /-- Gets the cartesian products of states sets `s1` and `s2` -/
@@ -113,19 +112,15 @@ def get_accepting_states (states : Std.HashSet (Nat × Nat))
 
     ### Algorithm
 
-    1. **State Construction**: Q = Q₁ × Q₂ (Cartesian product)
+    1. **State Construction**
 
-    2. **Accepting States**: Determined by `get_accepting_states` based on operation
+    2. **Determine Accepting States**
 
-    3. **Variable List**: Union of both variable lists, sorted and deduplicated
+    3. **Combine Variable Lists**
 
-    4. **Alphabet Construction**: Gets all combinations of B2.one and B2.zero of length equals
-    to the number of variables
+    4. **Alphabet Construction**
 
-    5. **Transition Function**:
-       - Create variable→symbol mapping from merged variable list
-       - Each component DFA reads only its own variables from the input
-       - Transition: (q₁, q₂) --[input]--> (δ₁(q₁, input|vars₁), δ₂(q₂, input|vars₂))
+    5. **Combine Transition Function**
 -/
 def crossproduct'
 (M₁ : DFA_extended (List B2) Nat) (operator : binary_ops) (M₂ : DFA_extended (List B2) Nat)

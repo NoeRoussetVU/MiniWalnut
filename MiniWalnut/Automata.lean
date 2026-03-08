@@ -22,9 +22,7 @@ complement and state renaming operations.
 These types support automata-based arithmetic and logical operations.
 -/
 
-/-- Binary alphabet with two symbols: zero and one.
-    Used for representing numbers in base-2 (msd - most significant digit first).
--/
+/-- Binary alphabet representing numbers in base-2. -/
 inductive B2 where
   | zero
   | one
@@ -64,16 +62,7 @@ alphabet of lists, with the value at each index representing the corresponding v
 
 -/
 
-/-- Automaton that accepts only valid representations.
-
-    ### States
-    - 0: Valid representation (initial state, accepting)
-    - 1: Invalid representation (dead state)
-
-    ### Transitions
-    - From state 0: Reading [0] or [1] stays in state 0 (valid)
-    - Everything else goes to state 1 (invalid)
--/
+/-- Automaton that accepts only valid representations. -/
 def valid_representations : DFA (List B2) Nat := {
   step := fun x y => match x,y with
     | 0, [B2.zero] => 0
@@ -83,20 +72,7 @@ def valid_representations : DFA (List B2) Nat := {
   accept := {x | x = 0}
 }
 
-/-- Automaton for binary addition: accepts (a, b, c) where a = b + c.
-
-    ### States
-    - 0: No carry (initial and accepting state)
-    - 1: Has carry from previous position
-    - 2: Dead state (invalid input)
-
-    ### Transitions
-    - From state 0: If a = b + c is valid ([0,0,0],[1,1,0],[1,0,1]) stay in this state.
-      If [1,0,0] is read, a carry is generated and it goes to state 1.
-    - From state 1: If a = b + c is an operation with a carry ([1,1,1],[0,0,1],[0,1,0])
-      If [0,1,1] is read, the carry is consumed and it goes back to state 0.
-    - Anything else is invalid and goes to the dead state, 2.
--/
+/-- Automaton for binary addition: accepts (a, b, c) where a = b + c. -/
 def addition : DFA (List B2) Nat := {
   step := fun x y => match x,y with
     | 0, [B2.zero, B2.zero, B2.zero] => 0
@@ -124,16 +100,7 @@ example :
     input ∉ addition.accepts := by
   simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, addition]
 
-/-- Automaton for equality: accepts (a, b) where a = b.
-
-    ### States
-    - 0: Valid equal relation representation (initial state, accepting)
-    - 1: Invalid representation (dead state)
-
-    ### Transitions
-    - From state 0: Reading [0,0] or [1,1] stays in state 0 (valid)
-    - Everything else goes to state 1 (invalid)
--/
+/-- Automaton for equality: accepts (a, b) where a = b. -/
 def equals : DFA (List B2) Nat := {
   step := fun x y => match x,y with
     | 0, [B2.zero, B2.zero] => 0
@@ -167,19 +134,7 @@ example :
     input ∉ equals.accepts := by
   simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, equals]
 
-/-- Automaton for less-than comparison: accepts (a, b) where a < b.
-
-    ### States
-    - 0: Haven't seen difference yet (a = b so far)
-    - 1: Seen a < b (accepting state)
-    - 2: Dead state (a > b or invalid input)
-
-    ### Transitions
-    - From state 0: If a = b stay in this state.
-      If a < b ([0,1]) is read, go to the accepting state 1.
-      if a > b is read, go to the dead state 2.
-    - From state 1: a > b will always hold here so any transition stays in 1.
--/
+/-- Automaton for less-than comparison: accepts (a, b) where a < b. -/
 def less_than : DFA (List B2) Nat := {
   step := fun x y => match x,y with
     | 0, [B2.zero, B2.zero] => 0
@@ -218,20 +173,7 @@ example :
     input ∉ less_than.accepts := by
   simp [DFA.mem_accepts, DFA.eval, DFA.evalFrom, less_than]
 
-/-- Automaton for binary subtraction: accepts (a, b, c) where a = b - c.
-
-    ### States
-    - 0: No carry (initial and accepting state)
-    - 1: Has carry from previous position
-    - 2: Dead state (invalid input)
-
-    ### Transitions
-    - From state 0: If a = b - c is valid ([0,0,0],[1,1,0],[0,1,1]) stay in this state.
-      If [0,1,0] is read, a carry is generated and it goes to state 1.
-    - From state 1: If a = b - c is an operation with a carry ([1,1,1],[0,0,1],[0,1,0])
-      If [0,1,1] is read, the carry is consumed and it goes back to state 0.
-    - Anything else is invalid and goes to the dead state, 2.
--/
+/-- Automaton for binary subtraction: accepts (a, b, c) where a = b - c. -/
 def subtraction : DFA (List B2) Nat := {
   step := fun x y => match x,y with
     | 0, [B2.zero, B2.zero, B2.zero] => 0
@@ -255,18 +197,7 @@ appending the boolean complement of the sequence obtained thus far.
 
 e.g. 0, 01, 0110, 01101001,...
 
-This automaton computes the Thue-Morse value at position n given n in binary.
--/
-
-/-- Automaton that computes the Thue-Morse sequence value.
-
-    Reads a binary number (position n) and the state represents the Thue-Morse value.
-
-    ### States
-    - 0: Thue-Morse value at position n is 0
-    - 1: Thue-Morse value at position n is 1
-    - 2: Dead state
--/
+This automaton computes the Thue-Morse value at position n given n in binary. -/
 def thue_morse : DFA (List B2) Nat := {
   step := fun x y => match x,y with
     | 0, [B2.zero] => 0
@@ -278,28 +209,7 @@ def thue_morse : DFA (List B2) Nat := {
   accept := {0, 1}
 }
 
-/-!
-## Extended DFA Construction Functions
-
-These functions create DFA_extended structures that wrap DFAs with all necessary fields.
--/
-
-/-- Creates a DFA that accepts exactly one specific word.
-
-    ### Parameters
-    - `word`: The target word to accept
-    - `zero`: The "zero" symbol for padding
-
-    ### States
-    - 0 to word.length: States representing how much of the word has been matched
-    - word.length: Accept only after reading the complete word
-    - word.length + 1: Dead state for mismatches
-
-    ### Transitions
-    - From state 0: If [0] is read stay in this state, when [1] is read move to state 1
-    - From state x > 0: If the input at index x of the accepted word is read, go to state x + 1,
-      else go to the dead state. If x = word.length, any input goes to the dead state.
--/
+/-- Creates a DFA that accepts exactly one given specific word. -/
 def build_equals_digit_DFA' {T : Type} [DecidableEq T]
 (word : List T) (zero : T) : DFA T Nat where
   step := fun state symbol =>
@@ -315,13 +225,13 @@ def build_equals_digit_DFA' {T : Type} [DecidableEq T]
   start := 0
   accept := {word.length}
 
-/-- Creates a complete extended DFA for word equality.
+/-!
+## Extended DFA Construction Functions
 
-    ### Parameters
-    - `word`: The target word to accept
-    - `zero`: The "zero" symbol for padding
-    - `vars`: The name of the input track
+These functions create DFA_extended structures that wrap DFAs with all necessary fields.
 -/
+
+/-- Creates a complete extended DFA for word equality. -/
 def build_equals_digit_DFA (word : List (List B2)) (zero : List B2) (var : Char)
  : DFA_extended (List B2) Nat where
   automata := build_equals_digit_DFA' word zero
@@ -331,11 +241,7 @@ def build_equals_digit_DFA (word : List (List B2)) (zero : List B2) (var : Char)
   dead_state := some (word.length + 1)
   vars := [var]
 
-/-- Creates a complete extended DFA for variable equality.
-
-    ### Parameters
-    - `vars`: The name of the input track
--/
+/-- Creates a complete extended DFA for variable equality. -/
 def build_equals_DFA (var_1 : Char) (var_2 : Char)
  : DFA_extended (List B2) Nat where
   automata := equals
@@ -346,11 +252,7 @@ def build_equals_DFA (var_1 : Char) (var_2 : Char)
   vars := [var_1, var_2]
 
 
-/-- Creates a complete extended DFA for addition with all metadata.
-
-    ### Parameters
-    - `vars`: The name of the input tracks
--/
+/-- Creates a complete extended DFA for addition. -/
 def build_addition_DFA (var_1 : Char) (var_2 : Char) (var_3 : Char) : DFA_extended (List B2) Nat where
   automata := addition
   states :=  Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
@@ -366,11 +268,7 @@ def build_addition_DFA (var_1 : Char) (var_2 : Char) (var_3 : Char) : DFA_extend
   dead_state := some 2
   vars := [var_1, var_2, var_3]
 
-/-- Creates a complete extended DFA for less-than comparison.
-
-    ### Parameters
-    - `vars`: The name of the input track
--/
+/-- Creates a complete extended DFA for less-than comparison. -/
 def build_less_than_DFA (var_1 : Char) (var_2 : Char) : DFA_extended (List B2) Nat where
   automata := less_than
   states := Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
@@ -380,11 +278,7 @@ def build_less_than_DFA (var_1 : Char) (var_2 : Char) : DFA_extended (List B2) N
   dead_state := some 2
   vars := [var_1, var_2]
 
-/-- Creates a complete extended DFA for subtraction with all metadata.
-
-    ### Parameters
-    - `vars`: The name of the input tracks
--/
+/-- Creates a complete extended DFA for subtraction. -/
 def build_subtraction_DFA (var_1 : Char) (var_2 : Char) (var_3 : Char) : DFA_extended (List B2) Nat where
   automata := subtraction
   states :=  Std.HashSet.emptyWithCapacity.insertMany [0,1,2]
@@ -400,12 +294,7 @@ def build_subtraction_DFA (var_1 : Char) (var_2 : Char) (var_3 : Char) : DFA_ext
   dead_state := some 2
   vars := [var_1, var_2, var_3]
 
-/-- Creates a complete extended DFA for Thue-Morse sequence equality.
-
-    ### Parameters
-    - `values`: List of Thue-Morse values to accept (0 or 1)
-    - `vars`: The name of the input track
--/
+/-- Creates a complete extended DFA for Thue-Morse sequence equality. -/
 def build_TH_equals_digit_DFA (values : List Nat) (var : Char)
  : DFA_extended (List B2) Nat where
   automata := thue_morse
@@ -417,6 +306,9 @@ def build_TH_equals_digit_DFA (values : List Nat) (var : Char)
 
 /-!
 ## Automata Operations
+
+  These functions provide helpful features for the decision procedure.
+
 -/
 
 /-- Complement operation: creates a DFA that accepts the complement language. -/
@@ -438,11 +330,7 @@ def complement
     automata := new_automata
   }
 
-/-- Assigns unique natural numbers to states in a DFA.
-
-    ### Returns
-    A triple: (numbered states, numbered accepting states, state→number mapping)
--/
+/-- Assigns unique natural numbers to states in a DFA. -/
 def assign_numbers
 (all_states : List (List Nat)) (accepting_states : List (List Nat)) : (List ℕ × List ℕ × Std.HashMap (List Nat) ℕ) :=
   -- Pairs each state with its index
@@ -478,11 +366,11 @@ def change_states_names
   -- Convert dead state if it exists
   let new_dead_state := match M.dead_state with
                 |none => none
-                |some n => some mappings.snd.snd[n]!
+                |some n => some old_to_new_map[n]!
   -- Build new automaton with Nat states using the transition table
   let automata := {
     step := fun st input => old_to_new_map[(M.automata.step (new_to_old_map[st]!) input)]!
-    start :=  mappings.snd.snd[M.automata.start]!
+    start :=  old_to_new_map[M.automata.start]!
     accept := {p | new_states_accept.contains p}
   }
   {
