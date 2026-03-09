@@ -1,5 +1,8 @@
 import MiniWalnut.Examples
 import Mathlib.Computability.DFA
+import MiniWalnut.CrossProductProof
+import MiniWalnut.ComplementProof
+import MiniWalnut.QuantProof
 
 /-!
 

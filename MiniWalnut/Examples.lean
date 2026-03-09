@@ -4,6 +4,9 @@ import MiniWalnut.Automata
 import MiniWalnut.Crossproduct
 import MiniWalnut.Quantification
 import MiniWalnut.Minimization
+import MiniWalnut.CrossProductProof
+import MiniWalnut.ComplementProof
+import MiniWalnut.QuantProof
 
 /-- For which n does the Thue-Morse word have a square xx where |x| = n ?
 

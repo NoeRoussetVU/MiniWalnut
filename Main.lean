@@ -1,10 +1,14 @@
 import MiniWalnut.Examples
+import MiniWalnut.CrossProductProof
+import MiniWalnut.ComplementProof
+import MiniWalnut.QuantProof
 
+/-- converts B2 to int -/
 def conversion (b : B2) : Int :=
   match b with
   | B2.zero => 0
   | B2.one => 1
--- prints graphvis format
+/-- prints graphvis format -/
 def printDFADot : IO Unit := do
 
   let res := tmup
